@@ -1,0 +1,45 @@
+# Ignore the environment variables
+.env
+# Ignore Virtual Environments
+AIDSML_venv/
+AIDSML_venv/*
+.venv/
+venv/
+env/
+
+# Python cache / artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Logs / runtime output
+*.log
+DecodedAI_logs/
+logs/
+
+# Packaging / build artifacts
+dist/
+build/
+*.egg-info/
+*.whl
+*.tar
+*.tgz
+
+# Editor / IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# App-generated assets
+pyecharts_assets/
+
+# Manuscript source
+radiant-llm-evaluation/radiant-llm_manuscript.tex
