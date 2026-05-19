@@ -161,7 +161,7 @@ Use a path **inside the container** under your mounted folder, for example:
 ```
 
 ### 5) Pull and run visual-parser (optional)
-Build a multi-modal JSONL knowledge base before or alongside RADIANT-LLM QA. See [`codebase/Visual-Parser/README.md`](codebase/Visual-Parser/README.md) for CLI flags.
+Build a multi-modal JSONL knowledge base before or alongside RADIANT-LLM QA. See [`visual-paser/README.md`](codebase/Visual-Parser/README.md) for CLI flags.
 
 ```bash
 docker pull zev94/radiant-llm:visual-parser-1.0
