@@ -81,7 +81,7 @@ Create a `.env` file with your API keys (for example `OPENAI_API_KEY=...`). Pass
 ## Quick Start: Docker (prebuilt images)
 
 Prebuilt images are published on Docker Hub: **[zev94/radiant-llm](https://hub.docker.com/r/zev94/radiant-llm)**.  
-Hub overview text (copy-paste): [`docker-hub-overview.md`](docker-hub-overview.md).
+
 
 | Tag | Application |
 |-----|-------------|
