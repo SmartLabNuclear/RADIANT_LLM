@@ -1,0 +1,38 @@
+# ============================================================
+# visual-rag — Minimal dependency set
+# ============================================================
+# Core PDF handling
+PyMuPDF>=1.23.0               # fitz — rasterisation & native text layer
+Pillow>=10.0.0                # image handling
+
+# Nougat (transformer-based OCR) — only needed for --text-mode nougat
+torch>=2.1.0                  # CPU build is fine; GPU users install their own wheel
+transformers>=4.38.0          # AutoProcessor + VisionEncoderDecoderModel
+
+# Lightweight text extraction
+langchain-community>=0.0.20   # PyPDFLoader fallback
+langchain>=0.1.0
+langchain-text-splitters>=0.0.1  # RecursiveCharacterTextSplitter (split out from langchain in v0.2+)
+pytesseract>=0.3.10           # optional equation OCR (requires Tesseract binary)
+
+# Vision LLM — OpenAI
+openai>=1.14.0
+
+# Vision LLM — Google Gemini
+google-generativeai>=0.5.0
+
+# Environment / config
+python-dotenv>=1.0.0
+
+# Progress reporting
+tqdm>=4.66.0
+
+# ============================================================
+# NOT included (present in RADIANT-LLM but not needed here):
+#   langchain-chroma, chromadb  — no vector store
+#   dash, dash-bootstrap-components — no UI
+#   paramiko                    — no SSH
+#   wikipedia, beautifulsoup4   — no web tools
+#   langchain-experimental      — no Python REPL
+#   langchain-openai (agents)   — no agent framework
+# ============================================================
