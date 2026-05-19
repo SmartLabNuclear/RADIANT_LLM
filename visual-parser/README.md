@@ -1,5 +1,9 @@
 # visual-parser (Standalone Visual-RAG PDF Ingestion)
 
+<!-- ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg) -->
+![Python 3.12.10](https://img.shields.io/badge/Python-3.12.10-brightgreen.svg)
+<!-- ![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg) -->
+
 `visual-parser` is a standalone document-ingestion tool that converts PDFs into a multi-modal JSONL knowledge base (text chunks + figure descriptions + metadata). The intended workflow is:
 
 1) Run `visual-parser` on curated PDFs to generate JSONL KB files.
@@ -83,16 +87,22 @@ docker run --rm --env-file .env -v "C:\path\to\pdfs:/data" `
   --input-dir /data --output-dir /data --vision-model gpt-5.4
 ```
 
-## Run from source (Python)
+<!-- ## Run from source (Python)
 
 From `codebase/Visual-Parser/`:
 ```powershell
 python visual-parser.py --input-dir "C:\path\to\pdfs"
+``` -->
+
+## Common configuration flags
+
+After pulling the image, run:
+
+```bash
+docker run --rm zev94/radiant-llm:visual-parser-1.0 --help
 ```
 
-More examples are in `usage_examples.txt`.
-
-## Common model/config flags
+For copy-paste **Docker** examples (vision presets, text modes, workers, rebuild), see [`docker-usage-examples.md`](docker-usage-examples.md).
 
 Paths:
 - `--input-dir` / `-i` (required)
@@ -115,4 +125,28 @@ Performance / misc:
 - `--max-workers 4`
 - `--rebuild` (reprocess everything; ignore `04_processed_pdfs.txt`)
 - `--log-level DEBUG|INFO|WARNING|ERROR`
+
+---
+
+## Citation
+
+If you use RADIANT-LLM or the accompanying evaluation materials, please cite the preprint:
+
+```bibtex
+@article{ndum2026radiant,
+  title={RADIANT-LLM: an Agentic Retrieval Augmented Generation Framework for Reliable Decision Support in Safety-Critical Nuclear Engineering},
+  author={Ndum, Zavier Ndum and Tao, Jian and Ford, John and Yim, Mansung and Liu, Yang},
+  journal={arXiv preprint arXiv:2604.22755},
+  year={2026}
+}
+```
+
+Preprint: https://arxiv.org/abs/2604.22755
+
+---
+
+## License
+
+This repository is currently proprietary and not licensed for public use, redistribution, or modification. Licensing terms will be updated after institutional review.
+
 
