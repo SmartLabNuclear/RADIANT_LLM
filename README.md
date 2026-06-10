@@ -4,6 +4,11 @@
 ![Python 3.12.10](https://img.shields.io/badge/Python-3.12.10-brightgreen.svg)
 <!-- ![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg) -->
 
+<p align="center">
+  <a href="./RADIANT_LLM_GUI.png">
+    <img src="./RADIANT_LLM_GUI.png" alt="RADIANT-LLM interface" width="720">
+  </a>
+</p>
 
 RADIANT-LLM (**R**etrieval-augmented **D**omain-intelligent assistant for **A**dvanced **N**uclear **T**echnologies) is a local-first, model-agnostic Visual-RAG (visual retrieval-augmented generation) system for secure, document-grounded assistance in Nuclear Science and Engineering (NSE). It combines multi-modal ingestion (text plus visual context) with a structured knowledge base to enable page- and figure-level retrieval from complex technical documents with auditable, citation-backed responses, while respecting privacy/security constraints by keeping data processing local and emphasizing auditable, citation-traceable outputs.
 
@@ -85,8 +90,8 @@ Prebuilt images are published on Docker Hub: **[zev94/radiant-llm](https://hub.d
 
 | Tag | Application |
 |-----|-------------|
-| `1.0`, `latest` | **RADIANT-LLM** — chat UI for Visual-RAG over your knowledge base |
-| `visual-parser-1.0`, `visual-parser-latest` | **visual-parser** — PDF → JSONL knowledge-base ingestion |
+| `1.0`, `latest` | **RADIANT-LLM** - chat UI for Visual-RAG over your knowledge base |
+| `visual-parser-1.0`, `visual-parser-latest` | **visual-parser** - PDF to JSONL knowledge-base ingestion |
 
 ### Prerequisites
 - Docker Desktop (Windows/macOS) or Docker Engine (Linux)
@@ -96,17 +101,21 @@ Prebuilt images are published on Docker Hub: **[zev94/radiant-llm](https://hub.d
 ### 1) Pull RADIANT-LLM
 ```bash
 docker pull zev94/radiant-llm:1.0
+docker pull zev94/radiant-llm:latest
 ```
 
 Windows PowerShell:
 ```powershell
 docker pull zev94/radiant-llm:1.0
+docker pull zev94/radiant-llm:latest
 ```
 
 ### 2) Run RADIANT-LLM
-The container serves the web UI on port **8080** inside the image. Map host **8060** → container **8080**.
+The container serves the web UI on port **8080** inside the image. Map host **8060** to container **8080**.
 
-Mount a **skills** folder (read-only; not baked into the image), an optional **working directory** for PDF/CSV tools, and a **logs** folder so reasoning/streaming logs persist on the host (`RADIANT_LLM_Logs` on the host → `/radiant-llm/RADIANT_LLM_Logs` in the container).
+Mount the bundled **skills** folder read-only at `/radiant-llm/radiant_llm_skills`, mount your host working-data root at `/host`, and mount a **logs** folder so reasoning/streaming logs persist on the host (`RADIANT_LLM_Logs` on the host to `/radiant-llm/RADIANT_LLM_Logs` in the container).
+
+If the UI auto-populates the **user_skills** field, keep that path under `/host` so it stays writable and persists with the rest of your case data. A common pattern is to create `/host/user_skills` on the mounted host folder before launch.
 
 Windows PowerShell:
 ```powershell
@@ -114,9 +123,9 @@ docker run -d --name radiant-llm `
   -p 8060:8080 `
   --env-file .env `
   -v "C:\path\to\radiant_llm_skills:/radiant-llm/radiant_llm_skills:ro" `
-  -v "C:\path\to\your\data:/workdir" `
+  -v "C:\path\to\your\data:/host" `
   -v "${PWD}\RADIANT_LLM_Logs:/radiant-llm/RADIANT_LLM_Logs" `
-  zev94/radiant-llm:1.0
+  zev94/radiant-llm:latest
 ```
 
 WSL (Ubuntu):
@@ -125,9 +134,9 @@ docker run -d --name radiant-llm \
   -p 8060:8080 \
   --env-file .env \
   -v "/mnt/c/path/to/radiant_llm_skills:/radiant-llm/radiant_llm_skills:ro" \
-  -v "/mnt/c/path/to/your/data:/workdir" \
+  -v "/mnt/c/path/to/your/data:/host" \
   -v "$PWD/RADIANT_LLM_Logs:/radiant-llm/RADIANT_LLM_Logs" \
-  zev94/radiant-llm:1.0
+  zev94/radiant-llm:latest
 ```
 
 Linux:
@@ -136,13 +145,12 @@ docker run -d --name radiant-llm \
   -p 8060:8080 \
   --env-file .env \
   -v "/path/to/radiant_llm_skills:/radiant-llm/radiant_llm_skills:ro" \
-  -v "/path/to/your/data:/workdir" \
+  -v "/path/to/your/data:/host" \
   -v "$PWD/RADIANT_LLM_Logs:/radiant-llm/RADIANT_LLM_Logs" \
-  zev94/radiant-llm:1.0
+  zev94/radiant-llm:latest
 ```
 
-Optional (GPU): add `--gpus all` to `docker run`.
-
+Pin `zev94/radiant-llm:1.0` instead of `latest` if you want the fixed 1.0 release. Optional (GPU): add `--gpus all` to `docker run`.
 ### 3) Open the web GUI
 ```text
 http://localhost:8060
@@ -154,12 +162,23 @@ docker ps
 docker logs -f radiant-llm
 ```
 
-### 4) Set Working Directory in the UI
-Use a path **inside the container** under your mounted folder, for example:
+### 4) Set Working Directory and user_skills in the UI
+Use a path **inside the container** under your mounted host folder, for example:
 ```text
-/workdir
+/host
 ```
 
+If you mounted a larger host data root, set the working directory to a subfolder under `/host`, for example:
+```text
+/host/project_a
+```
+
+If the UI auto-fills the **user_skills** field, keep it on a writable path under `/host` such as:
+```text
+/host/user_skills
+```
+
+You only need to change that field if you intentionally mounted a different writable skills location.
 ### 5) Pull and run visual-parser (optional)
 Build a multi-modal JSONL knowledge base before or alongside RADIANT-LLM QA. See [`visual-parser/README.md`](visual-parser/README.md) for CLI flags.
 
@@ -199,7 +218,7 @@ docker load -i .\radiant-llm_0.1.0.tar
 docker images   # use the tag printed by Docker
 ```
 
-Older images used port `8050`, mount path `/host_data`, and log folder `DecodedAI_logs`. Current Hub images use `8060:8080`, `/workdir`, and **`RADIANT_LLM_Logs`** → `/radiant-llm/RADIANT_LLM_Logs`.
+Older images used port `8050`, mount path `/host_data`, and log folder `DecodedAI_logs`. Current Hub images use `8060:8080`, `/host`, and **`RADIANT_LLM_Logs`** to `/radiant-llm/RADIANT_LLM_Logs`.
 
 ---
 
@@ -211,7 +230,7 @@ Older images used port `8050`, mount path `/host_data`, and log folder `DecodedA
 
 - **Invalid directory. Default temporary directory is being used**
   - The UI working-directory path must exist inside the container.
-  - Match the right-hand side of your volume mount (for example mount to `/workdir`, then use `/workdir/...` in the UI).
+  - Match the right-hand side of your volume mount (for example mount to `/host`, then use `/host/...` in the UI).
 
 - **Skills not loading**
   - Mount skills at `/radiant-llm/radiant_llm_skills`, or set **Skills directory** in Settings to your custom mount path.
@@ -241,3 +260,4 @@ Preprint: https://arxiv.org/abs/2604.22755
 ## License
 
 This repository is currently proprietary and not licensed for public use, redistribution, or modification. Licensing terms will be updated after institutional review.
+
