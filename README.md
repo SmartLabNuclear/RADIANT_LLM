@@ -333,7 +333,8 @@ Preprint: https://arxiv.org/abs/2604.22755
 
 ## License
 
-This repository is currently proprietary and not licensed for public use, redistribution, or modification. Licensing terms will be updated after institutional review.
+This repository is publicly visible for research preview and reference purposes, but it is not yet released under an open-source license. No permission is granted at this time for redistribution, modification, or production reuse. Licensing terms will be updated after journal publication and institutional review.
+
 
 
 
