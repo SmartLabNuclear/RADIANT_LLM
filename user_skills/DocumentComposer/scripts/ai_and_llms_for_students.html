@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI & LLMs: From Basics to MCP</title>
+    <!-- Fonts & Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300;0,400;0,700;1,300&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        /* CSS RESET & VARIABLES */
+        :root {
+            --maroon: #500000;      /* Texas A&M Maroon */
+            --maroon-dark: #3c0000; /* Darker shading */
+            --cream: #FAF6EE;       /* Warm background cream */
+            --white: #FFFFFF;
+            --charcoal: #2E2D2C;    /* Deep body text */
+            --gray-light: #F2EFE9;  /* Muted card backgrounds */
+            --gold: #C69214;        /* Complementary Texas A&M secondary gold */
+            --gold-light: #F0E2C3;
+            --transition-speed: 0.4s;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #1a1a1a;
+            color: var(--charcoal);
+            font-family: 'Montserrat', sans-serif;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* ASPECT-RATIO CONTROLLED PRESENTATION CANVAS */
+        #presentation-viewport {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .slide-deck {
+            width: 1280px;
+            height: 720px;
+            background-color: var(--cream);
+            position: relative;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            overflow: hidden;
+            transform-origin: center;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* GLOBAL SLIDE FRAMEWORK */
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            padding: 50px 80px 80px 80px;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-speed) ease-in-out, transform var(--transition-speed) ease-in-out;
+            transform: translateX(50px);
+            z-index: 1;
+            background-color: var(--cream);
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+            z-index: 2;
+        }
+
+        .slide.previous {
+            transform: translateX(-50px);
+        }
+
+        /* TEXAS A&M SLIDE TOP ACCENT LINE */
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background-color: var(--maroon);
+        }
+
+        /* TYPOGRAPHY Rules */
+        h1, h2, h3, h4 {
+            font-family: 'Merriweather', serif;
+            color: var(--maroon);
+            font-weight: 700;
+        }
+
+        .slide-title {
+            font-size: 38px;
+            margin-bottom: 25px;
+            border-bottom: 3px solid var(--maroon);
+            padding-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .slide-title span.slide-index {
+            font-size: 18px;
+            font-family: 'Montserrat', sans-serif;
+            color: var(--gold);
+            background: var(--gold-light);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        p, li {
+            font-size: 18px;
+            line-height: 1.6;
+            color: var(--charcoal);
+        }
+
+        /* LAYOUT & COMPONENT TEMPLATES */
+        .content-container {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-grow: 1;
+            width: 100%;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+
+        /* Title Slide Structure */
+        .slide-title-layout {
+            background: linear-gradient(135deg, var(--maroon) 0%, var(--maroon-dark) 100%);
+            color: var(--cream);
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            height: 100%;
+            position: relative;
+        }
+
+        .slide-title-layout::before {
+            display: none; /* Hide top bar on title slide */
+        }
+
+        .slide-title-layout h1 {
+            color: var(--white);
+            font-size: 64px;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.3);
+        }
+
+        .slide-title-layout h2 {
+            color: var(--gold);
+            font-size: 26px;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 400;
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+        }
+
+        .slide-title-layout .badge {
+            border: 2px solid var(--gold);
+            padding: 8px 24px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* Large Focus Callout Card */
+        .callout-card {
+            background-color: var(--white);
+            border-left: 8px solid var(--maroon);
+            border-radius: 4px;
+            padding: 30px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+        }
+
+        .callout-card h3 {
+            margin-bottom: 12px;
+            font-size: 24px;
+        }
+
+        /* Icons & Cards Layout */
+        .tile-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 25px;
+            width: 100%;
+        }
+
+        .tile {
+            background-color: var(--white);
+            border-top: 5px solid var(--maroon);
+            border-radius: 6px;
+            padding: 30px 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+
+        .tile:hover {
+            transform: translateY(-5px);
+        }
+
+        .tile-icon {
+            font-size: 45px;
+            color: var(--maroon);
+            margin-bottom: 20px;
+        }
+
+        .tile h3 {
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .tile p {
+            font-size: 14px;
+            color: var(--charcoal);
+        }
+
+        /* Lists formatting */
+        ul.custom-bullets {
+            list-style: none;
+        }
+
+        ul.custom-bullets li {
+            position: relative;
+            padding-left: 35px;
+            margin-bottom: 18px;
+            font-size: 18px;
+        }
+
+        ul.custom-bullets li::before {
+            content: '\f054'; /* Angle Right icon */
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            left: 0;
+            color: var(--gold);
+            font-size: 16px;
+            top: 4px;
+        }
+
+        /* Graphics, Visual Framings, and Images */
+        .frame-visual {
+            background-color: var(--gray-light);
+            border: 2px solid var(--gold-light);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+            height: 380px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+
+        .frame-visual img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        /* Large statistic visualization */
+        .stat-display {
+            display: flex;
+            align-items: center;
+            background-color: var(--white);
+            border: 1px solid var(--gold-light);
+            border-left: 10px solid var(--maroon);
+            border-radius: 6px;
+            padding: 40px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .stat-number {
+            font-size: 110px;
+            font-weight: 700;
+            color: var(--maroon);
+            line-height: 1;
+            font-family: 'Merriweather', serif;
+            margin-right: 40px;
+            border-right: 2px solid var(--gold-light);
+            padding-right: 40px;
+        }
+
+        .stat-desc h3 {
+            font-size: 26px;
+            margin-bottom: 10px;
+        }
+
+        /* Clean Comparison Table */
+        .slide-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--white);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .slide-table th {
+            background-color: var(--maroon);
+            color: var(--white);
+            font-family: 'Merriweather', serif;
+            font-size: 20px;
+            font-weight: 400;
+            padding: 18px 24px;
+            text-align: left;
+        }
+
+        .slide-table td {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--gray-light);
+            font-size: 16px;
+        }
+
+        .slide-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .slide-table tr:nth-child(even) {
+            background-color: var(--gray-light);
+        }
+
+        /* Progress & KPI Bars */
+        .kpi-row {
+            margin-bottom: 20px;
+        }
+
+        .kpi-row .kpi-label {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .kpi-bar {
+            background-color: var(--gray-light);
+            height: 16px;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .kpi-fill {
+            background: linear-gradient(90deg, var(--maroon) 0%, var(--gold) 100%);
+            height: 100%;
+            border-radius: 8px;
+            width: 0%;
+            transition: width 1s cubic-bezier(0.1, 0.8, 0.3, 1);
+        }
+
+        /* BOTTOM PRESENTATION CONTROLS */
+        .deck-controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background-color: var(--maroon);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+            z-index: 10;
+        }
+
+        .deck-controls button {
+            background: transparent;
+            border: none;
+            color: var(--white);
+            font-size: 18px;
+            cursor: pointer;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-radius: 4px;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+
+        .deck-controls button:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: var(--gold);
+        }
+
+        .deck-controls button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        .deck-controls .page-indicators {
+            display: flex;
+            gap: 10px;
+        }
+
+        .deck-controls .indicator-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .deck-controls .indicator-dot.active {
+            background-color: var(--gold);
+            transform: scale(1.2);
+        }
+
+        .deck-progress-bar {
+            position: absolute;
+            bottom: 60px;
+            left: 0;
+            height: 5px;
+            background-color: var(--gold);
+            width: 0%;
+            transition: width 0.3s ease;
+            z-index: 10;
+        }
+
+        /* MENU / OVERVIEW DRAWER (SIDEBAR) */
+        #nav-drawer {
+            position: fixed;
+            top: 0;
+            right: -300px;
+            width: 300px;
+            height: 100vh;
+            background-color: var(--maroon-dark);
+            box-shadow: -5px 0 25px rgba(0,0,0,0.5);
+            z-index: 100;
+            transition: right 0.3s ease;
+            padding: 40px 20px;
+            color: var(--white);
+            overflow-y: auto;
+        }
+
+        #nav-drawer.open {
+            right: 0;
+        }
+
+        #nav-drawer h3 {
+            color: var(--gold);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        #nav-drawer ul {
+            list-style: none;
+        }
+
+        #nav-drawer li {
+            padding: 12px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        #nav-drawer li:hover, #nav-drawer li.active {
+            background-color: var(--maroon);
+            color: var(--white);
+        }
+
+        #drawer-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 101;
+            background-color: var(--maroon);
+            color: var(--white);
+            border: 2px solid var(--gold);
+            border-radius: 4px;
+            width: 45px;
+            height: 45px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+            transition: background 0.2s;
+        }
+
+        #drawer-toggle:hover {
+            background-color: var(--maroon-dark);
+        }
+
+        /* Keyboard help banner */
+        .kb-help {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 10;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            pointer-events: none;
+            font-weight: 500;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Drawer Navigation Toggle -->
+    <button id="drawer-toggle"><i class="fa-solid fa-bars"></i></button>
+
+    <!-- Interactive Navigation Drawer -->
+    <div id="nav-drawer">
+        <h3>Presentation Slides</h3>
+        <ul id="drawer-slide-list">
+            <!-- Programmatically populated -->
+        </ul>
+    </div>
+
+    <!-- Live viewport displaying scaled 16:9 canvas -->
+    <div id="presentation-viewport">
+        <div class="slide-deck" id="slide-deck">
+
+            <!-- SLIDE 1: Title Slide -->
+            <div class="slide slide-title-layout active" id="slide-1">
+                <h1>AI and Large Language Models</h1>
+                <h2>From Foundational Transformers to Autonomous Ecosystems</h2>
+                <div class="badge">A High School Masterclass</div>
+            </div>
+
+            <!-- SLIDE 2: What is Generative AI? -->
+            <div class="slide" id="slide-2">
+                <div class="slide-title">
+                    What is Generative AI?
+                    <span class="slide-index">02 / 12</span>
+                </div>
+                <div class="content-container">
+                    <div class="grid-2">
+                        <div>
+                            <div class="callout-card">
+                                <h3>AI That Creates, Rather Than Decides</h3>
+                                <p>While traditional (discriminative) AI classifies or detects patterns (e.g., "Is this photo a cat?"), Generative AI creates brand-new output matching those learned patterns (e.g., "Synthesize an image of a red cat").</p>
+                            </div>
+                            <ul class="custom-bullets">
+                                <li><strong>Pre-training:</strong> Ingesting massive amounts of textual web-corpora.</li>
+                                <li><strong>Probability Mapping:</strong> Computing mathematical likelihoods of upcoming words.</li>
+                                <li><strong>Output:</strong> Delivering synthesized text, logic, music, or graphics.</li>
+                            </ul>
+                        </div>
+                        <div class="frame-visual">
+                            <img src="http://googleusercontent.com/image_collection/image_retrieval/11235343493358076809" alt="Visualization of Generative AI Core Engine Concept" onerror="this.src='https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&w=600&q=80'">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 3: How LLMs Think -->
+            <div class="slide" id="slide-3">
+                <div class="slide-title">
+                    How Large Language Models Work
+                    <span class="slide-index">03 / 12</span>
+                </div>
+                <div class="content-container">
+                    <div class="grid-2">
+                        <div class="frame-visual">
+                            <img src="http://googleusercontent.com/image_collection/image_retrieval/7214334857175324300" alt="Data Flow Mapping vector clusters" onerror="this.src='https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80'">
+                        </div>
+                        <div>
+                            <div class="callout-card">
+                                <h3>Tokens, Embeddings, & Self-Attention</h3>
+                                <p>LLMs process information via numerical representation. Language is broken into parts called tokens, mapped into vectors, and evaluated sequentially.</p>
+                            </div>
+                            <ul class="custom-bullets">
+                                <li><strong>Tokenization:</strong> Splitting textual inputs into sub-word structural elements.</li>
+                                <li><strong>Multi-Dimensional Embeddings:</strong> Mapping word concepts to coordinates.</li>
+                                <li><strong>The Transformer Core:</strong> Using "Self-Attention" mechanisms to analyze relations between words simultaneously.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 4: Prompt Engineering -->
+            <div class="slide" id="slide-4">
+                <div class="slide-title">
+                    The Art of Prompt Engineering
+                    <span class="slide-index">04 / 12</span>
+                </div>
+                <div class="content-container">
+                    <div class="tile-grid">
+                        <div class="tile">
+                            <div class="tile-icon"><i class="fa-solid fa-bolt"></i></div>
+                            <h3>Zero-Shot Prompting</h3>
+                            <p>Direct instruction without supporting examples.</p>
+                            <p style="margin-top:10px; font-style:italic; font-size:12px; color:var(--maroon)">"Translate 'How are you' into Latin."</p>
+                        </div>
+                        <div class="tile">
+                            <div class="tile-icon"><i class="fa-solid fa-list-ol"></i></div>
+                            <h3>Few-Shot Prompting</h3>
+                            <p>Delivering 1 to 5 target examples to clarify patterns.</p>
+                            <p style="margin-top:10px; font-style:italic; font-size:12px; color:var(--maroon)">"A: Cool -> Ice. A: Warm -> Fire. A: Hard -> ?"</p>
+                        </div>
+                        <div class="tile">
+                            <div class="tile-icon"><i class="fa-solid fa-brain"></i></div>
+                            <h3>Chain of Thought</h3>
+                            <p>Forcing explicit reasoning steps before final output generation.</p>
+                            <p style="margin-top:10px; font-style:italic; font-size:12px; color:var(--maroon)">"Think step-by-step to calculate..."</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 5: RAG -->
+            <div class="slide" id="slide-5">
+                <div class="slide-title">
+                    RAG: Retrieval-Augmented Generation
+                    <span class="slide-index">05 / 12</span>
+                </div>
+                <div class="content-container">
+                    <div class="grid-2">
+                        <div>
+                            <div class="callout-card">
+                                <h3>Solving Hallucinations & Context Boundaries</h3>
+                                <p>LLMs cannot remember everything, and their pre-training cuts off at a set date. RAG resolves this by pairing your query with custom external reference documents.</p>
+                            </div>
+                            <ul class="custom-bullets">
+                                <li><strong>Retrieve:</strong> Searches text from a local database matching your prompt.</li>
+                                <li><strong>Augment:</strong> Appends those files directly behind your original query.</li>
+                                <li><strong>Generate:</strong> Hands the augmented context to the model to produce factual answers.</li>
+                            </ul>
+                        </div>
+                        <div class="frame-visual">
+                            <img src="http://googleusercontent.com/image_collection/image_retrieval/9133510681713581603" alt="Abstract Diagram of DB Query and LLM Generation" onerror="this.src='https://images.unsplash.com/photo-1544383835-bda2bc66a55d?auto=format&fit=crop&w=600&q=80'">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 6: CAG -->
+            <div class="slide" id="slide-6">
+                <div class="slide-title">
+                    CAG: Cache-Augmented Generation
+                    <span class="slide-index">06 / 12</span>
+                </div>
+                <div class="content-container">
+                    <div class="grid-2">
+                        <div class="stat-display">
+                            <div class="stat-number">10x</div>
+                            <div class="stat-desc">
+                                <h3>Latency Reduction</h3>
+                                <p>Eliminating database lookup pipelines entirely.</p>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="callout-card">
+                                <h3>Why CAG?</h3>
+                                <p>For applications querying high-use, static business documents, running database searches on every prompt is redundant. CAG utilizes massive context windows by keeping static reference data fully loaded in cache memory.</p>
+                            </div>
+                            <ul class="custom-bullets">
+                                <li>Preloaded datasets directly ready inside LLM context window.</li>
+                                <li>Zero pipeline delays—removes vector search latency.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 7: MCP Introduction -->
+            <div class="slide" id="slide-7">
+                <div class="slide-title">
+                    The Model Context Protocol (MCP)
+                    <span class="slide-index">07 / 12</span>
+                </div>
+                <div class="content-container">
+                    <div class="grid-2">
+                        <div>
+                            <div class="callout-card">
+                                <h3>The Universal Connector for AI Context</h3>
+                                <p>Prior to MCP, each AI application needed customized integration code to talk to files, databases, or cloud tools. MCP provides an open standard, creating an immediate, uniform interface.</p>
+                            </div>
+                            <ul class="custom-bullets">
+                                <li><strong>Like USB-C:</strong> One standard port connects the AI to everything.</li>
+                                <li><strong>Open Standard:</strong> Any developer can connect systems without vendor lock-in.</li>
+                            </ul>
+                        </div>
+                        <div class="frame-visual">
+                            <img src="http://googleusercontent.com/image_collection/image_retrieval/2946521447869652483" alt="Abstract conceptual image of universal connectivity ports" onerror="this.src='https://images.unsplash.com/photo-1563770660941-20978e870e26?auto=format&fit=crop&w=600&q=80'">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 8: MCP Architecture -->
+            <div class="slide-container slide" id="slide-8">
+                <div class="slide-title">
+                    MCP Architecture Blueprint
+                    <span class="slide-index">08 / 12</span>
+                </div>
+                <div class="content-container">
+                    <div class="tile-grid">
+                        <div class="tile">
+                            <div class="tile-icon"><i class="fa-solid fa-laptop-code"></i></div>
+                            <h3>MCP Host</h3>
+                            <p>The frontend application running the AI experience (e.g., Claude Desktop, VS Code, or custom software environments).</p>
+                        </div>
+                        <div class="tile">
+                            <div class="tile-icon"><i class="fa-solid fa-server"></i></div>
+                            <h3>MCP Client</h3>
+                            <p>The component residing inside the Host that initiates and maintains protocol-level connections with the servers.</p>
+                        </div>
+                        <div class="tile">
+                            <div class="tile-icon"><i class="fa-solid fa-database"></i></div>
+                            <h3>MCP Server</h3>
+                            <p>The small, secure service providing context, tools, files, resources, or API gateways out to the client.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 9: Agent Skills -->
+            <div class="slide" id="slide-9">
+                <div class="slide-title">
+                    Ecosystem Capabilities & Agent Skills
+                    <span class="slide-index">09 / 12</span>
+                </div>
+                <div class="content-container">
+                    <div class="grid-2">
+                        <div>
+                            <div class="callout-card">
+                                <h3>From Passive Chatbots to Active Agents</h3>
+                                <p>By linking standard MCP connections to AI frameworks, models transition from conversational systems to proactive executors.</p>
+                            </div>
+                            <ul class="custom-bullets">
+                                <li><strong>Tools:</strong> Executable functions the AI runs directly (e.g., executing code, running SQL queries).</li>
+                                <li><strong>Resources:</strong> Raw datasets readable by the model (CSVs, APIs, Files).</li>
+                                <li><strong>Prompts:</strong> Structured templates facilitating deep multi-step workflows.</li>
+                            </ul>
+                        </div>
+                        <div class="frame-visual">
+                            <img src="http://googleusercontent.com/image_collection/image_retrieval/13660691699381637204" alt="Robotics computer screen overlay" onerror="this.src='https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&w=600&q=80'">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 10: AI Security & Risks -->
+            <div class="slide" id="slide-10">
+                <div class="slide-title">
+                    AI Safety, Security & Risks
+                    <span class="slide-index">10 / 12</span>
+                </div>
+                <div class="content-container">
+                    <div class="grid-2">
+                        <div>
+                            <div class="kpi-row">
+                                <div class="kpi-label"><span>Prompt Injection / Jailbreaks</span><span>95%</span></div>
+                                <div class="kpi-bar"><div class="kpi-fill" data-width="95%"></div></div>
+                            </div>
+                            <div class="kpi-row">
+                                <div class="kpi-label"><span>Tool Poisoning via External Sources</span><span>85%</span></div>
+                                <div class="kpi-bar"><div class="kpi-fill" data-width="85%"></div></div>
+                            </div>
+                            <div class="kpi-row">
+                                <div class="kpi-label"><span>Private Information Leaks (PII)</span><span>70%</span></div>
+                                <div class="kpi-bar"><div class="kpi-fill" data-width="70%"></div></div>
+                            </div>
+                            <p style="font-size: 14px; margin-top:20px; color:var(--text-muted)">*Values represent typical industry focus and risk levels across enterprise LLM implementations.</p>
+                        </div>
+                        <div>
+                            <div class="callout-card">
+                                <h3>Securing Agent Operations</h3>
+                                <p>Exposing backend system systems to AI introduces novel vulnerabilities. Prompt engineering isn't enough—strict boundaries must be enforced.</p>
+                                <p style="margin-top: 15px; font-weight: 600; color:var(--maroon)"><i class="fa-solid fa-shield-halved"></i> Guardrails: Always implement "Human-in-the-Loop" verifications before writing data, executing destructive code, or sending outbound payments.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SLIDE 11: Comparison Table -->
+            <div class="slide" id="slide-11">
+                <div class="slide-title">
+                    Comparing System Architectures
+                    <span class="slide-index">11 / 12</span>
+                </div>
+                <div class="content-container">
+                    <table class="slide-table">
+                        <thead>
+                            <tr>
+                                <th>Operational Feature</th>
+                                <th>Standard LLM</th>
+                                <th>RAG Architecture</th>
+                                <th>MCP Integration</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>Dynamic Data Fetching</strong></td>
+                                <td>No (Stuck on pre-training)</td>
+                                <td>Passive lookup on prompt</td>
+                                <td>Active, dynamic connections</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Direct System Actions</strong></td>
+                                <td>None</td>
+                                <td>None (Purely informational)</td>
+                                <td>High (Executes commands securely)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Setup Effort</strong></td>
+                                <td>Zero</td>
+                                <td>Medium (Vector DB construction)</td>
+                                <td>Minimal (Universal interface setup)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Interoperability</strong></td>
+                                <td>N/A</td>
+                                <td>Low (Requires custom APIs)</td>
+                                <td>Excellent (Universal Open Standard)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SLIDE 12: Real-World Case Study -->
+            <div class="slide" id="slide-12">
+                <div class="slide-title">
+                    Digital Twins & Real-World Operations
+                    <span class="slide-index">12 / 12</span>
+                </div>
+                <div class="content-container">
+                    <div class="grid-2">
+                        <div class="frame-visual">
+                            <img src="http://googleusercontent.com/image_collection/image_retrieval/13636116704836034970" alt="Futuristic nuclear reactor console monitoring system" onerror="this.src='https://images.unsplash.com/photo-1581092160607-ee22621dd758?auto=format&fit=crop&w=600&q=80'">
+                        </div>
+                        <div>
+                            <div class="callout-card">
+                                <h3>Interactive Digital Twins</h3>
+                                <p>Using LLMs to supervise physical structures (like manufacturing pipelines, energy grids, or simulation chambers) by establishing immediate links via MCP.</p>
+                            </div>
+                            <ul class="custom-bullets">
+                                <li><strong>Sensors:</strong> Stream localized operations data into cached memories (CAG).</li>
+                                <li><strong>Reasoning:</strong> Models diagnose anomalies and propose optimizations.</li>
+                                <li><strong>Action:</strong> AI triggers standard tool scripts with human oversight to keep operations optimal and safe.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM NAVIGATION CONTROLS -->
+            <div class="deck-progress-bar" id="progress-bar"></div>
+            <div class="deck-controls">
+                <button id="btn-prev" disabled><i class="fa-solid fa-circle-arrow-left"></i> Previous</button>
+                <div class="page-indicators" id="indicators-container">
+                    <!-- Dots dynamically generated -->
+                </div>
+                <button id="btn-next">Next <i class="fa-solid fa-circle-arrow-right"></i></button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Keyboard visual helper banner -->
+    <div class="kb-help"><i class="fa-solid fa-keyboard"></i> Use arrow keys, spacebar, or swipe to navigate</div>
+
+    <script>
+        // PRESENTATION LOGIC
+        const slides = document.querySelectorAll('.slide');
+        const btnPrev = document.getElementById('btn-prev');
+        const btnNext = document.getElementById('btn-next');
+        const progressBar = document.getElementById('progress-bar');
+        const indicatorsContainer = document.getElementById('indicators-container');
+        const drawerSlideList = document.getElementById('drawer-slide-list');
+        const navDrawer = document.getElementById('nav-drawer');
+        const drawerToggle = document.getElementById('drawer-toggle');
+        const slideDeck = document.getElementById('slide-deck');
+
+        let currentSlideIdx = 0;
+
+        // Populate Slides Navigator Drawer & Footer Indicators
+        slides.forEach((slide, index) => {
+            // Get Slide Titles
+            let titleText = "Slide " + (index + 1);
+            const titleEl = slide.querySelector('.slide-title');
+            if (titleEl) {
+                // Strip the inner HTML slide index badge
+                const tempNode = titleEl.cloneNode(true);
+                const badge = tempNode.querySelector('.slide-index');
+                if (badge) badge.remove();
+                titleText = tempNode.textContent.trim();
+            } else if (index === 0) {
+                titleText = "Title Slide";
+            }
+
+            // Create Drawer Item
+            const li = document.createElement('li');
+            li.textContent = `${index + 1}. ${titleText}`;
+            li.dataset.index = index;
+            li.addEventListener('click', () => {
+                goToSlide(index);
+                toggleDrawer(false);
+            });
+            drawerSlideList.appendChild(li);
+
+            // Create Footer Dot
+            const dot = document.createElement('div');
+            dot.className = 'indicator-dot';
+            if (index === 0) dot.className += ' active';
+            dot.addEventListener('click', () => {
+                goToSlide(index);
+            });
+            indicatorsContainer.appendChild(dot);
+        });
+
+        const drawerItems = drawerSlideList.querySelectorAll('li');
+        const dots = indicatorsContainer.querySelectorAll('.indicator-dot');
+
+        function updateSlideStates() {
+            slides.forEach((slide, idx) => {
+                slide.classList.remove('active', 'previous');
+                if (idx === currentSlideIdx) {
+                    slide.classList.add('active');
+                    // Reset and re-animate progress bars on safety slide
+                    const kpis = slide.querySelectorAll('.kpi-fill');
+                    kpis.forEach(bar => {
+                        bar.style.width = '0%';
+                        setTimeout(() => {
+                            bar.style.width = bar.dataset.width;
+                        }, 100);
+                    });
+                } else if (idx < currentSlideIdx) {
+                    slide.classList.add('previous');
+                }
+            });
+
+            // Update footer controls
+            btnPrev.disabled = currentSlideIdx === 0;
+            btnNext.disabled = currentSlideIdx === slides.length - 1;
+
+            // Update Progress Bar
+            const progressPct = (currentSlideIdx / (slides.length - 1)) * 100;
+            progressBar.style.width = `${progressPct}%`;
+
+            // Update dots
+            dots.forEach((dot, idx) => {
+                dot.classList.toggle('active', idx === currentSlideIdx);
+            });
+
+            // Update Drawer highlighting
+            drawerItems.forEach((item, idx) => {
+                item.classList.toggle('active', idx === currentSlideIdx);
+            });
+        }
+
+        function goToSlide(idx) {
+            if (idx >= 0 && idx < slides.length) {
+                currentSlideIdx = idx;
+                updateSlideStates();
+            }
+        }
+
+        function nextSlide() {
+            if (currentSlideIdx < slides.length - 1) {
+                goToSlide(currentSlideIdx + 1);
+            }
+        }
+
+        function prevSlide() {
+            if (currentSlideIdx > 0) {
+                goToSlide(currentSlideIdx - 1);
+            }
+        }
+
+        // EVENT LISTENERS
+        btnPrev.addEventListener('click', prevSlide);
+        btnNext.addEventListener('click', nextSlide);
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                nextSlide();
+            } else if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
+                e.preventDefault();
+                prevSlide();
+            }
+        });
+
+        // Drawer Handling
+        function toggleDrawer(forceState) {
+            const isOpen = typeof forceState === 'boolean' ? forceState : !navDrawer.classList.contains('open');
+            navDrawer.classList.toggle('open', isOpen);
+            drawerToggle.querySelector('i').className = isOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-bars';
+        }
+        drawerToggle.addEventListener('click', () => toggleDrawer());
+
+        // Presentation Canvas Scaler to preserve absolute 16:9 1280x720 footprint
+        function scalePresentation() {
+            const baseWidth = 1280;
+            const baseHeight = 720;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+
+            // Compute optimal scaling coefficient
+            const scale = Math.min((windowWidth - 40) / baseWidth, (windowHeight - 40) / baseHeight);
+            
+            // Limit scale coefficient up to 1.5x max to prevent excessive pixel distortion
+            const boundedScale = Math.min(Math.max(scale, 0.3), 1.5);
+            
+            slideDeck.style.transform = `scale(${boundedScale})`;
+        }
+
+        window.addEventListener('resize', scalePresentation);
+        window.addEventListener('load', () => {
+            scalePresentation();
+            updateSlideStates();
+        });
+
+        // Touch Swipe Event Detectors for mobile accessibility
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        slideDeck.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        slideDeck.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, { passive: true });
+
+        function handleSwipe() {
+            const threshold = 50; // min distance
+            if (touchStartX - touchEndX > threshold) {
+                nextSlide(); // Swiped left
+            } else if (touchEndX - touchStartX > threshold) {
+                prevSlide(); // Swiped right
+            }
+        }
+    </script>
+</body>
+</html>
