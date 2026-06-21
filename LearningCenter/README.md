@@ -9,14 +9,16 @@ LearningCenter/ contains lightweight educational material that helps readers und
 - generating grounded answers from retrieved context
 - wrapping the RAG workflow as a simple tool-driven agent
 By default, the notebook uses the repository's own supplementary material PDF:
-- [../radiant-llm-evaluation/radiant-llm-supplementary-material.pdf](../radiant-llm-evaluation/radiant-llm-supplementary-material.pdf)
+- [radiant-llm-supplementary-material.pdf](https://github.com/SmartLabNuclear/RADIANT_LLM/blob/main/radiant-llm-evaluation/radiant-llm-supplementary-material.pdf)
 This keeps the tutorial aligned with the methodology and evaluation context described in the main repository.
 ## Prerequisites
 - Python environment with the notebook dependencies installed
 - An OPENAI_API_KEY for embeddings and response generation
 - Optional: Google Colab or Jupyter for interactive execution
-For the broader project context, installation options, Docker usage, and evaluation materials, see the main [README.md](../README.md).
+For the broader project context, installation options, Docker usage, and evaluation materials, see the main [README.md](https://github.com/SmartLabNuclear/RADIANT_LLM/blob/main/README.md).
 ## Citation
 If this repository, the LearningCenter notebook, or the accompanying evaluation materials support your work, please cite the RADIANT-LLM paper.
-- Citation metadata: [../CITATION.cff](../CITATION.cff)
+- Citation metadata: [CITATION.cff](https://github.com/SmartLabNuclear/RADIANT_LLM/blob/main/CITATION.cff)
 - Preprint: https://arxiv.org/abs/2604.22755
+
+
