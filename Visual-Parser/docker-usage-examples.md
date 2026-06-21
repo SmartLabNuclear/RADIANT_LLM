@@ -1,6 +1,6 @@
 # visual-parser — Docker usage examples
 
-Image: `zev94/radiant-llm:visual-parser-1.0` (or `visual-parser-latest`)
+Image: `zev94/radiant-llm:visual-parser-latest` (pinned: `visual-parser-1.0.2`)
 
 All examples assume:
 - A `.env` file with `OPENAI_API_KEY` and/or `GEMINI_API_KEY` in the directory where you run `docker`.
@@ -11,7 +11,7 @@ All examples assume:
 
 **Help (all flags):**
 ```bash
-docker run --rm zev94/radiant-llm:visual-parser-1.0 --help
+docker run --rm zev94/radiant-llm:visual-parser-latest --help
 ```
 
 ---
@@ -25,7 +25,7 @@ No extra flags needed — defaults are `--vision-provider gpt`, `--vision-model 
 ```bash
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data --output-dir /data
 ```
 
@@ -34,7 +34,7 @@ docker run --rm --env-file .env \
 ```bash
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data --output-dir /data \
   --reasoning-effort xhigh
 ```
@@ -44,7 +44,7 @@ docker run --rm --env-file .env \
 ```bash
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data --output-dir /data \
   --vision-provider gemini
 ```
@@ -54,7 +54,7 @@ docker run --rm --env-file .env \
 ```bash
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data --output-dir /data \
   --vision-provider gemini --vision-model gemini-2.5-flash
 ```
@@ -64,7 +64,7 @@ docker run --rm --env-file .env \
 ```bash
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data --output-dir /data \
   --vision-model gpt-4o
 ```
@@ -80,7 +80,7 @@ Output defaults to the same directory as input.
 ```bash
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data
 ```
 
@@ -92,7 +92,7 @@ Mount a second volume for outputs. `lightweight` skips Nougat (faster, no GPU; u
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
   -v "/path/to/out:/out" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data --output-dir /out --text-mode lightweight
 ```
 
@@ -101,7 +101,7 @@ docker run --rm --env-file .env \
 ```bash
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data --output-dir /data \
   --text-mode nougat --chunk-size 500 --chunk-overlap 100
 ```
@@ -115,7 +115,7 @@ docker run --rm --env-file .env \
 ```bash
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data --output-dir /data \
   --max-workers 6
 ```
@@ -125,7 +125,7 @@ docker run --rm --env-file .env \
 ```bash
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data --output-dir /data \
   --vision-provider gemini --metadata-pages 1 --max-workers 8
 ```
@@ -141,7 +141,7 @@ Use after changing models, prompts, or chunk settings.
 ```bash
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data --output-dir /data \
   --rebuild --reasoning-effort high --log-level INFO
 ```
@@ -151,7 +151,7 @@ docker run --rm --env-file .env \
 ```bash
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data --output-dir /data \
   --vision-detail high
 ```
@@ -163,7 +163,7 @@ docker run --rm --env-file .env \
 ```powershell
 docker run --rm --env-file .env `
   -v "C:\path\to\pdfs:/data" `
-  zev94/radiant-llm:visual-parser-1.0 `
+  zev94/radiant-llm:visual-parser-latest `
   --input-dir /data --output-dir /data `
   --vision-provider gemini --vision-model gemini-2.5-flash --text-mode lightweight
 ```

@@ -40,6 +40,16 @@ Thumbs.db
 
 # App-generated assets
 pyecharts_assets/
+.radiant_scan_cache.json
+
+# Docker runtime data — keep folder structure, ignore contents
+Docker_Executable/RADIANT_LLM_Logs/*
+!Docker_Executable/RADIANT_LLM_Logs/.gitkeep
+Docker_Executable/RADIANT_LLM_Sessions/*
+!Docker_Executable/RADIANT_LLM_Sessions/.gitkeep
 
 # Manuscript source
 radiant-llm-evaluation/radiant-llm_manuscript.tex
+
+# Session handoff notes — local only, never push
+session_handoff_*.md

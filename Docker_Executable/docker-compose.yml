@@ -1,0 +1,42 @@
+# RADIANT-LLM — Docker Compose deployment
+#
+# Usage (from this folder):
+#   docker compose up -d              start in background
+#   docker compose down               stop and remove container
+#   docker compose logs -f            follow live logs
+#   docker compose pull               pull latest image from Docker Hub
+#   docker compose up -d --pull always   pull + restart in one step
+#
+# Browser: http://localhost:8060
+#
+# Setup:
+#   1. Copy .env.example to .env and fill in your API keys
+#   2. Edit the volume paths below to match your machine
+#   3. Run: docker compose up -d
+#
+# Grace vLLM note:
+#   To use Grace HPRC local models, set VLLM_BASE_URL in .env to use
+#   host.docker.internal instead of localhost (e.g. http://host.docker.internal:8002/v1)
+#   so the container can reach the SSH tunnel running on your host machine.
+#   See developer_scripts/README.md for full Grace setup details.
+
+services:
+  radiant-llm:
+    image: zev94/radiant-llm:latest
+    container_name: radiant-llm
+    restart: unless-stopped
+    ports:
+      - "8060:8080"           # host 8060 → container 8080 (RADIANT_LLM_PORT)
+    env_file: .env
+    environment:
+      - RADIANT_LLM_SESSION_DIR=/radiant-llm/RADIANT_LLM_Sessions
+    volumes:
+      # Bundled skills — read-only. Replace with the path to your radiant_llm_skills folder.
+      - "/path/to/your/radiant_llm_skills:/radiant-llm/radiant_llm_skills:ro"
+      # Working directory accessible to file tools (PDF, CSV, images).
+      # Replace with the root folder you want available inside the container.
+      - "/path/to/your/data:/host"
+      # Persistent logs — survives container restarts and upgrades
+      - "./RADIANT_LLM_Logs:/radiant-llm/RADIANT_LLM_Logs"
+      # Persistent session history — survives container restarts and upgrades
+      - "./RADIANT_LLM_Sessions:/radiant-llm/RADIANT_LLM_Sessions"

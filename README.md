@@ -12,6 +12,23 @@
 
 RADIANT-LLM (**R**etrieval-augmented **D**omain-intelligent assistant for **A**dvanced **N**uclear **T**echnologies) is a local-first, model-agnostic Visual-RAG (visual retrieval-augmented generation) system for secure, document-grounded assistance in Nuclear Science and Engineering (NSE). It combines multi-modal ingestion (text plus visual context) with a structured knowledge base to enable page- and figure-level retrieval from complex technical documents with auditable, citation-backed responses, while respecting privacy/security constraints by keeping data processing local and emphasizing auditable, citation-traceable outputs.
 
+---
+
+## Table of Contents
+
+1. [Highlights of the Methodology](#highlights-of-the-methodology)
+2. [Highlights of the Results](#highlights-of-the-results)
+3. [LearningCenter](#learningcenter)
+4. [Evaluation Materials](#evaluation-materials)
+5. [Standalone PDF Ingestion: visual-parser](#standalone-pdf-ingestion-visual-parser)
+6. [Prerequisites: API Keys](#prerequisites-api-keys)
+7. [Quick Start: Docker](#quick-start-docker-prebuilt-images)
+8. [Local Models: Grace HPRC vLLM](#local-models-grace-hprc-vllm-optional)
+9. [Troubleshooting](#troubleshooting)
+10. [Citation](#citation)
+11. [License](#license)
+
+---
 
 ## Highlights of the Methodology
 - Secure, document-grounded Visual-RAG layer for NSE-based knowledge management 
@@ -50,8 +67,20 @@ For GPT-5.2 on the UNFSF context-scaling benchmark, performance remained strong 
 
 ---
 
-## Evaluation Materials
+## LearningCenter
 
+The [`LearningCenter/`](LearningCenter/) folder contains a public-facing tutorial notebook for readers who want a compact introduction to RAG concepts before diving into the full Visual-RAG system.
+
+- Notebook: [`LearningCenter/RAG_Agent_Workshop.ipynb`](LearningCenter/RAG_Agent_Workshop.ipynb)
+- Folder guide: [`LearningCenter/README.md`](LearningCenter/README.md)
+
+The notebook uses the repository's own supplementary material PDF as its default document source, so the walkthrough stays tied to the RADIANT-LLM methodology and evaluation context rather than a generic toy example.
+
+If the repository, notebook, or evaluation materials support your work, please cite the RADIANT-LLM paper using the metadata in [`CITATION.cff`](CITATION.cff).
+
+---
+
+## Evaluation Materials
 The evaluation package in [`radiant-llm-evaluation/`](radiant-llm-evaluation/) includes the supplementary material PDF, benchmark query files, scoring rubrics, expert scoring files, model responses, and statistical plots used to support the reported RADIANT-LLM results.
 
 - Supplementary material: [`radiant-llm-supplementary-material.pdf`](radiant-llm-evaluation/radiant-llm-supplementary-material.pdf)
@@ -90,8 +119,8 @@ Prebuilt images are published on Docker Hub: **[zev94/radiant-llm](https://hub.d
 
 | Tag | Application |
 |-----|-------------|
-| `1.0`, `latest` | **RADIANT-LLM** - chat UI for Visual-RAG over your knowledge base |
-| `visual-parser-1.0`, `visual-parser-latest` | **visual-parser** - PDF to JSONL knowledge-base ingestion |
+| `2.0`, `latest` | **RADIANT-LLM** - chat UI for Visual-RAG over your knowledge base |
+| `visual-parser-1.0.2`, `visual-parser-latest` | **visual-parser** - PDF to JSONL knowledge-base ingestion |
 
 ### Prerequisites
 - Docker Desktop (Windows/macOS) or Docker Engine (Linux)
@@ -100,31 +129,52 @@ Prebuilt images are published on Docker Hub: **[zev94/radiant-llm](https://hub.d
 
 ### 1) Pull RADIANT-LLM
 ```bash
-docker pull zev94/radiant-llm:1.0
+docker pull zev94/radiant-llm:2.0
 docker pull zev94/radiant-llm:latest
 ```
 
 Windows PowerShell:
 ```powershell
-docker pull zev94/radiant-llm:1.0
+docker pull zev94/radiant-llm:2.0
 docker pull zev94/radiant-llm:latest
 ```
 
 ### 2) Run RADIANT-LLM
-The container serves the web UI on port **8080** inside the image. Map host **8060** to container **8080**.
 
-Mount the bundled **skills** folder read-only at `/radiant-llm/radiant_llm_skills`, mount your host working-data root at `/host`, and mount a **logs** folder so reasoning/streaming logs persist on the host (`RADIANT_LLM_Logs` on the host to `/radiant-llm/RADIANT_LLM_Logs` in the container).
+The container serves the web UI on port **8080** internally, mapped to host port **8060**.
 
-If the UI auto-populates the **user_skills** field, keep that path under `/host` so it stays writable and persists with the rest of your case data. A common pattern is to create `/host/user_skills` on the mounted host folder before launch.
+Four volumes are mounted:
+- **Skills** (`radiant_llm_skills/`) — read-only bundled/developer skills
+- **Host data** (`/host`) — working directory for PDF/CSV/image tools
+- **Logs** (`RADIANT_LLM_Logs/`) — streaming and reasoning logs, persisted on host
+- **Sessions** (`RADIANT_LLM_Sessions/`) — chat session history, persisted on host
+
+#### Option A — Docker Compose (recommended)
+
+A ready-to-use `docker-compose.yml` is provided in [`Docker_Executable/`](Docker_Executable/). Edit the volume paths to match your machine, copy `.env.example` to `.env` and fill in your API keys, then:
+
+```bash
+cd Docker_Executable
+docker compose up -d          # start in background
+docker compose logs -f        # follow logs
+docker compose down           # stop and remove container
+docker compose up -d --pull always   # pull latest image + restart
+```
+
+Persistent data lands in `Docker_Executable/RADIANT_LLM_Logs/` and `Docker_Executable/RADIANT_LLM_Sessions/` on your host.
+
+#### Option B — Plain `docker run`
 
 Windows PowerShell:
 ```powershell
 docker run -d --name radiant-llm `
   -p 8060:8080 `
   --env-file .env `
+  -e RADIANT_LLM_SESSION_DIR=/radiant-llm/RADIANT_LLM_Sessions `
   -v "C:\path\to\radiant_llm_skills:/radiant-llm/radiant_llm_skills:ro" `
   -v "C:\path\to\your\data:/host" `
   -v "${PWD}\RADIANT_LLM_Logs:/radiant-llm/RADIANT_LLM_Logs" `
+  -v "${PWD}\RADIANT_LLM_Sessions:/radiant-llm/RADIANT_LLM_Sessions" `
   zev94/radiant-llm:latest
 ```
 
@@ -133,9 +183,11 @@ WSL (Ubuntu):
 docker run -d --name radiant-llm \
   -p 8060:8080 \
   --env-file .env \
+  -e RADIANT_LLM_SESSION_DIR=/radiant-llm/RADIANT_LLM_Sessions \
   -v "/mnt/c/path/to/radiant_llm_skills:/radiant-llm/radiant_llm_skills:ro" \
   -v "/mnt/c/path/to/your/data:/host" \
   -v "$PWD/RADIANT_LLM_Logs:/radiant-llm/RADIANT_LLM_Logs" \
+  -v "$PWD/RADIANT_LLM_Sessions:/radiant-llm/RADIANT_LLM_Sessions" \
   zev94/radiant-llm:latest
 ```
 
@@ -144,13 +196,15 @@ Linux:
 docker run -d --name radiant-llm \
   -p 8060:8080 \
   --env-file .env \
+  -e RADIANT_LLM_SESSION_DIR=/radiant-llm/RADIANT_LLM_Sessions \
   -v "/path/to/radiant_llm_skills:/radiant-llm/radiant_llm_skills:ro" \
   -v "/path/to/your/data:/host" \
   -v "$PWD/RADIANT_LLM_Logs:/radiant-llm/RADIANT_LLM_Logs" \
+  -v "$PWD/RADIANT_LLM_Sessions:/radiant-llm/RADIANT_LLM_Sessions" \
   zev94/radiant-llm:latest
 ```
 
-Pin `zev94/radiant-llm:1.0` instead of `latest` if you want the fixed 1.0 release. Optional (GPU): add `--gpus all` to `docker run`.
+Pin `zev94/radiant-llm:2.0` instead of `latest` for the fixed 2.0 release. Optional (GPU): add `--gpus all`.
 ### 3) Open the web GUI
 ```text
 http://localhost:8060
@@ -183,14 +237,14 @@ You only need to change that field if you intentionally mounted a different writ
 Build a multi-modal JSONL knowledge base before or alongside RADIANT-LLM QA. See [`visual-parser/README.md`](visual-parser/README.md) for CLI flags.
 
 ```bash
-docker pull zev94/radiant-llm:visual-parser-1.0
+docker pull zev94/radiant-llm:visual-parser-latest
 ```
 
 Windows PowerShell:
 ```powershell
 docker run --rm --env-file .env `
   -v "C:\path\to\pdfs:/data" `
-  zev94/radiant-llm:visual-parser-1.0 `
+  zev94/radiant-llm:visual-parser-latest `
   --input-dir /data --output-dir /data
 ```
 
@@ -198,13 +252,13 @@ WSL / Linux:
 ```bash
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data --output-dir /data
 ```
 
 Help:
 ```bash
-docker run --rm zev94/radiant-llm:visual-parser-1.0 --help
+docker run --rm zev94/radiant-llm:visual-parser-latest --help
 ```
 
 ---
@@ -219,6 +273,26 @@ docker images   # use the tag printed by Docker
 ```
 
 Older images used port `8050`, mount path `/host_data`, and log folder `DecodedAI_logs`. Current Hub images use `8060:8080`, `/host`, and **`RADIANT_LLM_Logs`** to `/radiant-llm/RADIANT_LLM_Logs`.
+
+---
+
+## Local Models: Grace HPRC vLLM (optional)
+
+RADIANT-LLM supports self-hosted inference via [vLLM](https://docs.vllm.ai) on the Texas A&M University (TAMU) Grace High Performance Research Computing (HPRC) cluster (or any compatible Slurm + A100 cluster). When configured, Grace model variants appear alongside cloud models (GPT, Gemini) in the model selector — no cloud API key is needed for inference.
+
+**Available variants:**
+
+| Variant | GPUs | Quantization | Context window |
+|---------|------|--------------|----------------|
+| Grace Gemma 4 26B-A4B | 1× A100 | FP8 | 16,384 tokens |
+| Grace Gemma 4 31B | 1× A100 | FP8 | 16,384 tokens |
+| Grace Gemma 4 31B (bf16) | 2× A100 | None (full precision) | 4,096 tokens |
+
+**How it works:** A Slurm job runs vLLM on a Grace GPU compute node. An SSH tunnel on your local machine (or Docker host) forwards requests from RADIANT-LLM to that node. No model weights or GPU compute leave the cluster.
+
+**Setup guide:** [`developer_scripts/README.md`](developer_scripts/README.md) — covers Grace account prerequisites, one-time model download, sbatch job templates, tunnel management scripts, and troubleshooting.
+
+> **Docker users:** The SSH tunnel binds to your host machine. RADIANT-LLM running in Docker reaches it automatically via `host.docker.internal` — the provided `docker-compose.yml` and `.env` in this repo already have this configured.
 
 ---
 
@@ -260,4 +334,6 @@ Preprint: https://arxiv.org/abs/2604.22755
 ## License
 
 This repository is currently proprietary and not licensed for public use, redistribution, or modification. Licensing terms will be updated after institutional review.
+
+
 

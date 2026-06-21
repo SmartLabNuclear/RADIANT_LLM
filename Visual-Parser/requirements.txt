@@ -8,6 +8,9 @@ Pillow>=10.0.0                # image handling
 # Nougat (transformer-based OCR) — only needed for --text-mode nougat
 torch>=2.1.0                  # CPU build is fine; GPU users install their own wheel
 transformers>=4.38.0          # AutoProcessor + VisionEncoderDecoderModel
+huggingface-hub>=0.36.0       # model download utilities (used by transformers/nougat)
+nltk>=3.8                     # required by NougatTokenizerFast
+python-Levenshtein>=0.20      # required by NougatTokenizerFast
 
 # Lightweight text extraction
 langchain-community>=0.0.20   # PyPDFLoader fallback

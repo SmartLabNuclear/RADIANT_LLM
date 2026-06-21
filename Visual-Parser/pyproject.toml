@@ -1,0 +1,69 @@
+[build-system]
+requires      = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name        = "visual-parser"
+version     = "1.0.2"
+description = "Standalone Visual-RAG PDF Parser — text extraction + Vision-LLM figure descriptions → JSONL"
+readme      = "README.md"
+requires-python = ">=3.10"
+license     = { text = "MIT" }
+
+keywords = [
+    "pdf", "rag", "nougat", "vision-llm", "ocr",
+    "document-parsing", "jsonl", "knowledge-base",
+]
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Markup",
+    "Intended Audience :: Science/Research",
+]
+
+dependencies = [
+    "PyMuPDF==1.24.7",
+    "Pillow==11.1.0",
+    "torch==2.7.0",
+    "transformers==4.45.2",
+    "huggingface-hub==0.36.0",
+    "langchain-community==0.3.3",
+    "langchain==0.3.13",
+    "langchain-text-splitters==0.3.4",
+    "openai==1.78.1",
+    "google-generativeai==0.8.5",
+    "python-dotenv==1.1.0",
+    "tqdm==4.67.1",
+    "nltk>=3.8",
+    "python-Levenshtein>=0.20",
+]
+
+[project.optional-dependencies]
+ocr = ["pytesseract==0.3.13"]   # requires Tesseract binary installed separately
+dev = ["pytest", "ruff", "mypy"]
+
+[project.urls]
+Homepage      = "https://github.com/SmartLabNuclear/RADIANT_LLM"
+Repository    = "https://github.com/SmartLabNuclear/RADIANT_LLM"
+"Docker Hub"  = "https://hub.docker.com/r/zev94/radiant-llm"
+
+[project.scripts]
+visual-parser = "visual_parser.cli_main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["visual_parser*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true

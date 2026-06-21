@@ -13,7 +13,7 @@
 
 By default, the pipeline writes:
 - `01_chunks_kb.jsonl`: chunked text extracted from PDFs (Nougat by default).
-- `02_figures_kb.jsonl`: figure/page visual descriptions (Vision LLM).
+- `02_visuals_kb.jsonl`: figure/page visual descriptions (Vision LLM).
 - `03_metadata_kb.jsonl`: document metadata rows (title/author/etc.).
 - `04_processed_pdfs.txt`: a tracker so re-runs only process new PDFs (unless `--rebuild`).
 
@@ -32,15 +32,16 @@ Prebuilt images are on **[zev94/radiant-llm](https://hub.docker.com/r/zev94/radi
 
 | Tag | Description |
 |-----|-------------|
-| `visual-parser-1.0` | Pinned release |
-| `visual-parser-latest` | Latest visual-parser build |
+| `visual-parser-latest` | Always latest build (rolling) |
+| `visual-parser-1.0.2` | Pinned release (current) |
+| `visual-parser-1.0` | Legacy — v1.0.0, stale |
 
 ### 1) Install Docker
 - Docker Desktop (Windows/macOS) or Docker Engine (Linux)
 
 ### 2) Pull the image
 ```bash
-docker pull zev94/radiant-llm:visual-parser-1.0
+docker pull zev94/radiant-llm:visual-parser-latest
 ```
 
 ### 3) Run (input + output on the same mounted folder)
@@ -48,7 +49,7 @@ Windows PowerShell:
 ```powershell
 docker run --rm --env-file .env `
   -v "C:\path\to\pdfs:/data" `
-  zev94/radiant-llm:visual-parser-1.0 `
+  zev94/radiant-llm:visual-parser-latest `
   --input-dir /data --output-dir /data
 ```
 
@@ -56,7 +57,7 @@ Linux / WSL:
 ```bash
 docker run --rm --env-file .env \
   -v "/path/to/pdfs:/data" \
-  zev94/radiant-llm:visual-parser-1.0 \
+  zev94/radiant-llm:visual-parser-latest \
   --input-dir /data --output-dir /data
 ```
 
@@ -66,7 +67,7 @@ Windows PowerShell:
 docker run --rm --env-file .env `
   -v "C:\path\to\pdfs:/data" `
   -v "C:\path\to\out:/out" `
-  zev94/radiant-llm:visual-parser-1.0 `
+  zev94/radiant-llm:visual-parser-latest `
   --input-dir /data --output-dir /out
 ```
 
@@ -83,7 +84,7 @@ Default vision model is **GPT-5.5** when using `--vision-provider gpt`. Override
 
 ```powershell
 docker run --rm --env-file .env -v "C:\path\to\pdfs:/data" `
-  zev94/radiant-llm:visual-parser-1.0 `
+  zev94/radiant-llm:visual-parser-latest `
   --input-dir /data --output-dir /data --vision-model gpt-5.4
 ```
 
@@ -99,7 +100,7 @@ python visual-parser.py --input-dir "C:\path\to\pdfs"
 After pulling the image, run:
 
 ```bash
-docker run --rm zev94/radiant-llm:visual-parser-1.0 --help
+docker run --rm zev94/radiant-llm:visual-parser-latest --help
 ```
 
 For copy-paste **Docker** examples (vision presets, text modes, workers, rebuild), see [`docker-usage-examples.md`](docker-usage-examples.md).
