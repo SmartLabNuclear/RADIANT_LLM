@@ -5,14 +5,16 @@
 <!-- ![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg) -->
 
 <p align="center">
-  <a href="./RADIANT_LLM_GUI.png">
-    <img src="./RADIANT_LLM_GUI.png" alt="RADIANT-LLM interface" width="720">
+  <a href="./RADIANT_LLM_GUI_2_0.png">
+    <img src="./RADIANT_LLM_GUI_2_0.png" alt="RADIANT-LLM interface" width="720">
   </a>
 </p>
 
 RADIANT-LLM (**R**etrieval-augmented **D**omain-intelligent assistant for **A**dvanced **N**uclear **T**echnologies) is a local-first, model-agnostic Visual-RAG (visual retrieval-augmented generation) system for secure, document-grounded assistance in Nuclear Science and Engineering (NSE). It combines multi-modal ingestion (text plus visual context) with a structured knowledge base to enable page- and figure-level retrieval from complex technical documents with auditable, citation-backed responses, while respecting privacy/security constraints by keeping data processing local and emphasizing auditable, citation-traceable outputs.
 
----
+This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+
+
 
 ## Table of Contents
 
@@ -28,6 +30,9 @@ RADIANT-LLM (**R**etrieval-augmented **D**omain-intelligent assistant for **A**d
 10. [Citation](#citation)
 11. [License](#license)
 
+This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+
+The generated JSONL knowledge bases can also support workflows outside the RADIANT-LLM interface. Users who prefer other coding or AI assistants, such as Codex, Claude Code, or Cursor, can point those tools at directories containing `visual-parser` outputs and work directly with the parsed document set. The example skills in this repository may also be adaptable to those broader assistant-driven workflows.
 ---
 
 ## Highlights of the Methodology
@@ -35,6 +40,9 @@ RADIANT-LLM (**R**etrieval-augmented **D**omain-intelligent assistant for **A**d
 - Multi-modal ingestion with page/figure-aware retrieval and citations.
 - Domain-aware evaluation metrics: Context Precision (CoP), Citation Precision (CiP), Citation Hit (CiH), Hallucination Rate (HR), and Visual Recall (ViR).
 
+This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+
+The generated JSONL knowledge bases can also support workflows outside the RADIANT-LLM interface. Users who prefer other coding or AI assistants, such as Codex, Claude Code, or Cursor, can point those tools at directories containing `visual-parser` outputs and work directly with the parsed document set. The example skills in this repository may also be adaptable to those broader assistant-driven workflows.
 ---
 
 ## Highlights of the Results 
@@ -65,6 +73,9 @@ For GPT-5.2 on the UNFSF context-scaling benchmark, performance remained strong 
 
 <a href="radiant-llm-evaluation/final_statistical_analysis/Plots/figure_context_scaling_lines.png"><img src="radiant-llm-evaluation/final_statistical_analysis/Plots/figure_context_scaling_lines.png" alt="Context-scaling benchmark results across knowledge-base sizes" width="650"></a>
 
+This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+
+The generated JSONL knowledge bases can also support workflows outside the RADIANT-LLM interface. Users who prefer other coding or AI assistants, such as Codex, Claude Code, or Cursor, can point those tools at directories containing `visual-parser` outputs and work directly with the parsed document set. The example skills in this repository may also be adaptable to those broader assistant-driven workflows.
 ---
 
 ## LearningCenter
@@ -78,6 +89,9 @@ The notebook uses the repository's own supplementary material PDF as its default
 
 If the repository, notebook, or evaluation materials support your work, please cite the RADIANT-LLM paper using the metadata in [`CITATION.cff`](CITATION.cff).
 
+This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+
+The generated JSONL knowledge bases can also support workflows outside the RADIANT-LLM interface. Users who prefer other coding or AI assistants, such as Codex, Claude Code, or Cursor, can point those tools at directories containing `visual-parser` outputs and work directly with the parsed document set. The example skills in this repository may also be adaptable to those broader assistant-driven workflows.
 ---
 
 ## Evaluation Materials
@@ -88,6 +102,9 @@ The evaluation package in [`radiant-llm-evaluation/`](radiant-llm-evaluation/) i
 - Context-scaling benchmark materials: [`Context_scaling/`](radiant-llm-evaluation/Context_scaling/)
 - Final statistical plots: [`final_statistical_analysis/Plots/`](radiant-llm-evaluation/final_statistical_analysis/Plots/)
 
+This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+
+The generated JSONL knowledge bases can also support workflows outside the RADIANT-LLM interface. Users who prefer other coding or AI assistants, such as Codex, Claude Code, or Cursor, can point those tools at directories containing `visual-parser` outputs and work directly with the parsed document set. The example skills in this repository may also be adaptable to those broader assistant-driven workflows.
 ---
 
 ## Standalone PDF ingestion: `visual-parser`
@@ -96,6 +113,9 @@ This repo also includes `visual-parser`, a standalone PDF ingestion tool that ac
 
 See [`codebase/Visual-Parser/README.md`](codebase/Visual-Parser/README.md) for CLI/Docker usage and model configuration options.
 
+This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+
+The generated JSONL knowledge bases can also support workflows outside the RADIANT-LLM interface. Users who prefer other coding or AI assistants, such as Codex, Claude Code, or Cursor, can point those tools at directories containing `visual-parser` outputs and work directly with the parsed document set. The example skills in this repository may also be adaptable to those broader assistant-driven workflows.
 ---
 ## Prerequisites: API keys
 
@@ -110,6 +130,9 @@ Optional (depending on enabled tools/features):
 
 Create a `.env` file with your API keys (for example `OPENAI_API_KEY=...`). Pass it at runtime with `--env-file .env` (path can be anywhere on the host).
 
+This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+
+The generated JSONL knowledge bases can also support workflows outside the RADIANT-LLM interface. Users who prefer other coding or AI assistants, such as Codex, Claude Code, or Cursor, can point those tools at directories containing `visual-parser` outputs and work directly with the parsed document set. The example skills in this repository may also be adaptable to those broader assistant-driven workflows.
 ---
 
 ## Quick Start: Docker (prebuilt images)
@@ -261,6 +284,9 @@ Help:
 docker run --rm zev94/radiant-llm:visual-parser-latest --help
 ```
 
+This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+
+The generated JSONL knowledge bases can also support workflows outside the RADIANT-LLM interface. Users who prefer other coding or AI assistants, such as Codex, Claude Code, or Cursor, can point those tools at directories containing `visual-parser` outputs and work directly with the parsed document set. The example skills in this repository may also be adaptable to those broader assistant-driven workflows.
 ---
 
 ### Offline install (legacy `.tar` releases)
@@ -274,6 +300,9 @@ docker images   # use the tag printed by Docker
 
 Older images used port `8050`, mount path `/host_data`, and log folder `DecodedAI_logs`. Current Hub images use `8060:8080`, `/host`, and **`RADIANT_LLM_Logs`** to `/radiant-llm/RADIANT_LLM_Logs`.
 
+This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+
+The generated JSONL knowledge bases can also support workflows outside the RADIANT-LLM interface. Users who prefer other coding or AI assistants, such as Codex, Claude Code, or Cursor, can point those tools at directories containing `visual-parser` outputs and work directly with the parsed document set. The example skills in this repository may also be adaptable to those broader assistant-driven workflows.
 ---
 
 ## Local Models: Grace HPRC vLLM (optional)
@@ -294,6 +323,9 @@ RADIANT-LLM supports self-hosted inference via [vLLM](https://docs.vllm.ai) on t
 
 > **Docker users:** The SSH tunnel binds to your host machine. RADIANT-LLM running in Docker reaches it automatically via `host.docker.internal` — the provided `docker-compose.yml` and `.env` in this repo already have this configured.
 
+This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+
+The generated JSONL knowledge bases can also support workflows outside the RADIANT-LLM interface. Users who prefer other coding or AI assistants, such as Codex, Claude Code, or Cursor, can point those tools at directories containing `visual-parser` outputs and work directly with the parsed document set. The example skills in this repository may also be adaptable to those broader assistant-driven workflows.
 ---
 
 ## Troubleshooting
@@ -312,6 +344,9 @@ RADIANT-LLM supports self-hosted inference via [vLLM](https://docs.vllm.ai) on t
 - **GPU not detected**
   - Verify GPU support with: `docker run --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi`
 
+This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+
+The generated JSONL knowledge bases can also support workflows outside the RADIANT-LLM interface. Users who prefer other coding or AI assistants, such as Codex, Claude Code, or Cursor, can point those tools at directories containing `visual-parser` outputs and work directly with the parsed document set. The example skills in this repository may also be adaptable to those broader assistant-driven workflows.
 ---
 
 ## Citation
@@ -329,11 +364,15 @@ If you use RADIANT-LLM or the accompanying evaluation materials, please cite the
 
 Preprint: https://arxiv.org/abs/2604.22755
 
+This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+
+The generated JSONL knowledge bases can also support workflows outside the RADIANT-LLM interface. Users who prefer other coding or AI assistants, such as Codex, Claude Code, or Cursor, can point those tools at directories containing `visual-parser` outputs and work directly with the parsed document set. The example skills in this repository may also be adaptable to those broader assistant-driven workflows.
 ---
 
 ## License
 
 This repository is publicly visible for research preview and reference purposes, but it is not yet released under an open-source license. No permission is granted at this time for redistribution, modification, or production reuse. Licensing terms will be updated after journal publication and institutional review.
+
 
 
 
