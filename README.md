@@ -93,17 +93,15 @@ See [`codebase/Visual-Parser/README.md`](codebase/Visual-Parser/README.md) for C
 
 ## Prerequisites: API keys
 
-You will typically need at least one LLM provider key:
-- OpenAI API key: https://platform.openai.com/api-keys
-- Gemini API key (AI Studio): https://aistudio.google.com/app/apikey
+You will typically need at least one LLM provider API key.
 
-Optional (depending on enabled tools/features):
-- LangChain / LangSmith API key (tracing/logs): https://www.langchain.com/langsmith
-- Google Custom Search API key: https://developers.google.com/custom-search/v1/introduction
-- Google Custom Search Engine ID: https://programmablesearchengine.google.com/controlpanel/overview
+Key sources:
 
-Create a `.env` file with your API keys (for example `OPENAI_API_KEY=...`). Pass it at runtime with `--env-file .env` (path can be anywhere on the host).
-
+- OpenAI API key [here](https://platform.openai.com/api-keys), or Gemini API key (optional, including free access for `gemini-2.5`) [here](https://aistudio.google.com/app/apikey)
+- LangChain (LangSmith) API key (optional, for tracing/logs) [here](https://www.langchain.com/langsmith)
+- Google Custom Search API key [here](https://developers.google.com/custom-search/v1/introduction)
+- Google Custom Search Engine ID [here](https://programmablesearchengine.google.com/controlpanel/overview)
+- Hugging Face API key (`HF_API_KEY`, required for document parsing in RAG) [here](https://huggingface.co/settings/tokens)
 ---
 
 ## Quick Start: Docker (prebuilt images)
