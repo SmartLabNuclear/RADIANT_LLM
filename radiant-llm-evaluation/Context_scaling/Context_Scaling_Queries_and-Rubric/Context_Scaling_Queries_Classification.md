@@ -1,6 +1,5 @@
 # Queries
 
-Source YAML: `Queries.yml`
 Benchmark Family: Context Expansion
 
 ## Standardized Metric Definitions
@@ -33,12 +32,6 @@ Benchmark Family: Context Expansion
 - Visual Recall (ViR):
   $ViR_i = \frac{|F_i \cap F_i^*|}{|F_i^*|}$.
   - Constraint: $0 \le ViR_i \le 1$.
-## Harmonization Notes
-
-- `Queries.yml` is treated as the canonical taxonomy-rich query source for the context-scaling benchmark.
-- The markdown export follows the revised taxonomy fields now embedded directly in `Queries.yml`.
-- Legacy metric terminology in category labels is normalized here to the manuscript vocabulary: `ViR`, `CoP`, `CiP`, `CiH`, and `HR`.
-
 ## Query Set
 
 - **Document Title**: Integrating Safety, Security and Safeguards (3Ss) into the Design Of Used Nuclear Fuel Storage Facility
