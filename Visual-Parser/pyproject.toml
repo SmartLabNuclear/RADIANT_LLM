@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "visual-parser"
-version = "2.0.3"
+version = "2.0.4"
 description = "Standalone Visual-RAG PDF Parser - text extraction and Vision-LLM figure descriptions to JSONL"
 readme = "README.md"
 requires-python = ">=3.10"
