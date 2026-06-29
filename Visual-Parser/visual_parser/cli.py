@@ -174,6 +174,17 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         ),
     )
     misc_group.add_argument(
+        "--skip-text",
+        action="store_true",
+        help=(
+            "Skip text extraction (Step 1) and resume only the vision steps "
+            "(figure descriptions + metadata). Use when chunking already completed "
+            "but the run was interrupted mid-vision (e.g. API credit exhaustion). "
+            "PDFs already present in 02_visuals_kb.jsonl / 03_metadata_kb.jsonl "
+            "are skipped automatically — no duplicates."
+        ),
+    )
+    misc_group.add_argument(
         "--log-level",
         choices=["DEBUG", "INFO", "WARNING", "ERROR"],
         default="ERROR",
@@ -216,6 +227,7 @@ def main(argv=None) -> int:
         metadata_pages        = args.metadata_pages,
         max_workers           = args.max_workers,
         rebuild               = args.rebuild,
+        skip_text             = args.skip_text,
         log_level             = args.log_level,
     )
 

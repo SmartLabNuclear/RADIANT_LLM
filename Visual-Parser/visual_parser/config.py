@@ -121,6 +121,15 @@ class ParserConfig:
     rebuild: bool = False
     """If True, reprocess all PDFs even if already recorded in 04_processed_pdfs.txt."""
 
+    skip_text: bool = False
+    """
+    If True, skip text extraction (Step 1) entirely.
+    Use when chunking already completed but the vision steps (figures / metadata)
+    failed mid-run (e.g. API credit exhaustion).  All PDFs in input_dir are
+    re-queued for vision steps; PDFs already present in 02_visuals_kb.jsonl /
+    03_metadata_kb.jsonl are skipped automatically.
+    """
+
     log_level: str = "ERROR"
 
     # -------------------------------------------------------------------------
@@ -145,6 +154,7 @@ class ParserConfig:
             metadata_pages       = int(os.getenv("VISUAL_PARSER_METADATA_PAGES", "2")),
             max_workers          = int(os.getenv("VISUAL_PARSER_MAX_WORKERS", "4")),
             rebuild              = os.getenv("VISUAL_PARSER_REBUILD", "false").lower() == "true",
+            skip_text            = os.getenv("VISUAL_PARSER_SKIP_TEXT", "false").lower() == "true",
             log_level            = os.getenv("VISUAL_PARSER_LOG_LEVEL", "ERROR"),
         )
 

@@ -1,6 +1,5 @@
 # visual-parser (Standalone Visual-RAG PDF Ingestion)
 
-<!-- ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg) -->
 ![Python 3.12.10](https://img.shields.io/badge/Python-3.12.10-brightgreen.svg)
 <!-- ![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg) -->
 
@@ -33,7 +32,7 @@ Prebuilt images are on **[zev94/radiant-llm](https://hub.docker.com/r/zev94/radi
 | Tag | Description |
 |-----|-------------|
 | `visual-parser-latest` | Always latest build (rolling) |
-| `visual-parser-1.0.2` | Pinned release (current) |
+| `visual-parser-2.0.0` | Pinned release (Apache 2.0 release) |
 | `visual-parser-1.0` | Legacy — v1.0.0, stale |
 
 ### 1) Install Docker
@@ -148,6 +147,6 @@ Preprint: https://arxiv.org/abs/2604.22755
 
 ## License
 
-This repository is currently proprietary and not licensed for public use, redistribution, or modification. Licensing terms will be updated after institutional review.
+This project is licensed under the Apache License 2.0. See the top-level [`LICENSE`](../LICENSE) for the full license text.
 
 

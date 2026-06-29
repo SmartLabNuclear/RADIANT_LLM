@@ -168,9 +168,10 @@ def nougat_extract_pdfs(
         return chunks, True
     # -----------------------------------------------------------------------
 
-    all_chunks: List[Dict] = []
+    chunks_path          = os.path.join(output_dir, "01_chunks_kb.jsonl")
+    total_chunks         = 0
     processed_basenames: List[str] = []
-    failed_basenames: List[str] = []
+    failed_basenames:    List[str] = []
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(_process_one, p): p for p in pdfs_to_run}
@@ -179,7 +180,9 @@ def nougat_extract_pdfs(
             try:
                 result, succeeded = future.result()
                 if succeeded and result:
-                    all_chunks.extend(result)
+                    # Flush this PDF's chunks immediately — safe against crashes
+                    append_to_jsonl(chunks_path, result)
+                    total_chunks += len(result)
                     processed_basenames.append(os.path.basename(pdf_path))
                 else:
                     failed_basenames.append(os.path.basename(pdf_path))
@@ -187,20 +190,12 @@ def nougat_extract_pdfs(
                 logger.error("Error collecting result for %s: %s", pdf_path, exc)
                 failed_basenames.append(os.path.basename(pdf_path))
 
-    if all_chunks:
-        chunks_path = os.path.join(output_dir, "01_chunks_kb.jsonl")
-        append_to_jsonl(chunks_path, all_chunks)
-
     summary = (
         f"Nougat extraction complete. "
-        f"{len(processed_basenames)} PDF(s) processed → {len(all_chunks)} chunks."
-    )
-    summary = (
-        f"Nougat extraction complete. "
-        f"{len(processed_basenames)} PDF(s) processed -> {len(all_chunks)} chunks. "
+        f"{len(processed_basenames)} PDF(s) processed -> {total_chunks} chunks. "
         f"{len(failed_basenames)} PDF(s) failed."
     )
-    return summary, processed_basenames, failed_basenames, len(all_chunks)
+    return summary, processed_basenames, failed_basenames, total_chunks
 
 
 # ===========================================================================
@@ -361,9 +356,10 @@ def lightweight_extract_pdfs(
         return chunks, True
     # -----------------------------------------------------------------------
 
-    all_chunks: List[Dict] = []
+    chunks_path          = os.path.join(output_dir, "01_chunks_kb.jsonl")
+    total_chunks         = 0
     processed_basenames: List[str] = []
-    failed_basenames: List[str] = []
+    failed_basenames:    List[str] = []
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {executor.submit(_process_one, p): p for p in pdfs_to_run}
@@ -372,7 +368,9 @@ def lightweight_extract_pdfs(
             try:
                 result, succeeded = future.result()
                 if succeeded and result:
-                    all_chunks.extend(result)
+                    # Flush this PDF's chunks immediately — safe against crashes
+                    append_to_jsonl(chunks_path, result)
+                    total_chunks += len(result)
                     processed_basenames.append(os.path.basename(pdf_path))
                 else:
                     failed_basenames.append(os.path.basename(pdf_path))
@@ -380,17 +378,9 @@ def lightweight_extract_pdfs(
                 logger.error("Error collecting result for %s: %s", pdf_path, exc)
                 failed_basenames.append(os.path.basename(pdf_path))
 
-    if all_chunks:
-        chunks_path = os.path.join(output_dir, "01_chunks_kb.jsonl")
-        append_to_jsonl(chunks_path, all_chunks)
-
     summary = (
         f"Lightweight extraction complete. "
-        f"{len(processed_basenames)} PDF(s) processed → {len(all_chunks)} chunks."
-    )
-    summary = (
-        f"Lightweight extraction complete. "
-        f"{len(processed_basenames)} PDF(s) processed -> {len(all_chunks)} chunks. "
+        f"{len(processed_basenames)} PDF(s) processed -> {total_chunks} chunks. "
         f"{len(failed_basenames)} PDF(s) failed."
     )
-    return summary, processed_basenames, failed_basenames, len(all_chunks)
+    return summary, processed_basenames, failed_basenames, total_chunks

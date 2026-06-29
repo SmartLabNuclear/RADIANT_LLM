@@ -135,16 +135,47 @@ def describe_figures_for_new_pdfs(
         pages_by_pdf[record["pdf"]].append(record)
 
     # -----------------------------------------------------------------------
-    # Step 3 – Call Vision LLM once per page
+    # Step 2.5 – Build set of (source, page) pairs already on disk so a
+    #            mid-run crash can be resumed at page granularity.
     # -----------------------------------------------------------------------
-    descriptions_by_page: Dict[tuple, List[str]] = {}
+    figures_path = os.path.join(output_dir, "02_visuals_kb.jsonl")
+    done_pages: set = set()
+    if os.path.exists(figures_path):
+        with open(figures_path, encoding="utf-8") as _fh:
+            for _line in _fh:
+                _line = _line.strip()
+                if not _line:
+                    continue
+                try:
+                    _rec = json.loads(_line)
+                    _src = _rec.get("source", "")
+                    _pg  = _rec.get("page")
+                    if _src and _pg is not None:
+                        done_pages.add((_src, _pg))
+                except Exception:
+                    pass
+    if done_pages:
+        logger.info(
+            "Resuming: %d page(s) already in 02_visuals_kb.jsonl — will skip.",
+            len(done_pages),
+        )
+
+    # -----------------------------------------------------------------------
+    # Step 3 – Call Vision LLM per page; flush each page to disk immediately.
+    #          Figure records are independent so per-page atomicity is safe.
+    # -----------------------------------------------------------------------
+    total_written = 0
 
     for pdf_name, image_records in pages_by_pdf.items():
-        per_pdf_count = 0
+        pdf_written = 0
 
         for record in image_records:
-            page_number  = record["page"]
-            image_bytes  = record["bytes"]
+            page_number = record["page"]
+            image_bytes = record["bytes"]
+
+            if (pdf_name, page_number) in done_pages:
+                logger.debug("Skipping %s page %d (already in KB).", pdf_name, page_number)
+                continue
 
             try:
                 raw_response = call_vision_llm(
@@ -159,8 +190,6 @@ def describe_figures_for_new_pdfs(
 
                 captions = _parse_llm_response(raw_response, pdf_name, page_number)
 
-                # Normalise: the model should return a list, but sometimes
-                # returns a single dict for single-figure pages.
                 if isinstance(captions, dict):
                     captions = [captions]
 
@@ -171,15 +200,27 @@ def describe_figures_for_new_pdfs(
                     )
                     continue
 
-                for caption in captions:
+                document_id = make_document_id(pdf_name)
+                page_rows: List[Dict] = []
+                for fig_idx, caption in enumerate(captions):
                     if not isinstance(caption, dict):
                         continue
                     description = caption.get("description")
                     if description is None:
                         continue
-                    key = (pdf_name, page_number)
-                    descriptions_by_page.setdefault(key, []).append(description)
-                    per_pdf_count += 1
+                    page_rows.append({
+                        "source":       pdf_name,
+                        "page":         page_number,
+                        "document_id":  document_id,
+                        "figure_index": fig_idx,
+                        "figure_id":    f"{document_id}:p{page_number}:f{fig_idx}",
+                        "description":  description,
+                    })
+
+                if page_rows:
+                    append_to_jsonl(figures_path, page_rows)
+                    pdf_written   += len(page_rows)
+                    total_written += len(page_rows)
 
             except Exception as exc:
                 logger.error(
@@ -187,32 +228,12 @@ def describe_figures_for_new_pdfs(
                     pdf_name, page_number, exc,
                 )
 
-        logger.info("[FIGURES] %s: %d figure(s) extracted.", pdf_name, per_pdf_count)
+        if pdf_written:
+            logger.info("[FIGURES] %s: %d figure(s) written.", pdf_name, pdf_written)
+        else:
+            logger.info("[FIGURES] %s: no new figures (all pages done or none detected).", pdf_name)
 
-    total = sum(len(v) for v in descriptions_by_page.values())
-    logger.info("Total figures captured: %d across %d PDF(s).", total,
-                len({k[0] for k in descriptions_by_page}))
-
-    # -----------------------------------------------------------------------
-    # Step 4 – Write figure descriptions to 02_visuals_kb.jsonl
-    # -----------------------------------------------------------------------
-    figure_rows: List[Dict] = []
-
-    for (pdf_name, page_number), descriptions in descriptions_by_page.items():
-        document_id = make_document_id(pdf_name)
-        for fig_idx, description in enumerate(descriptions):
-            figure_rows.append({
-                "source":        pdf_name,
-                "page":          page_number,
-                "document_id":   document_id,
-                "figure_index":  fig_idx,
-                "figure_id":     f"{document_id}:p{page_number}:f{fig_idx}",
-                "description":   description,
-            })
-
-    if figure_rows:
-        figures_path = os.path.join(output_dir, "02_visuals_kb.jsonl")
-        append_to_jsonl(figures_path, figure_rows)
-        print(f"[FIGURES] Wrote {len(figure_rows)} figure record(s) to 02_visuals_kb.jsonl.")
+    if total_written:
+        print(f"[FIGURES] Wrote {total_written} figure record(s) to 02_visuals_kb.jsonl.")
     else:
-        logger.info("No figures detected — 02_visuals_kb.jsonl not updated.")
+        logger.info("No new figures written — all pages already processed or none detected.")
