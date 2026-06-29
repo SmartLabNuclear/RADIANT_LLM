@@ -1,6 +1,5 @@
-# RADIANT-LLM
+﻿# RADIANT-LLM
 
-<!-- ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg) -->
 ![Python 3.12.10](https://img.shields.io/badge/Python-3.12.10-brightgreen.svg)
 <!-- ![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg) -->
 
@@ -87,7 +86,7 @@ The evaluation package in [`radiant-llm-evaluation/`](radiant-llm-evaluation/) i
 
 This repo also includes `visual-parser`, a standalone PDF ingestion tool that accelerates document processing by generating JSONL knowledge bases (text chunks + figure descriptions + metadata) from curated PDFs. You can run `visual-parser` first to build a high-fidelity, multi-modal KB, then run RADIANT-LLM Visual-RAG for QA over that KB.
 
-See [`codebase/Visual-Parser/README.md`](codebase/Visual-Parser/README.md) for CLI/Docker usage and model configuration options.
+The standalone `visual-parser` package is included in this repository and is covered by the same Apache License 2.0 used across the codebase. See [`Visual-Parser`](Visual-Parser/README.md) for package-specific usage details.
 
 ---
 
@@ -324,4 +323,4 @@ Preprint: https://arxiv.org/abs/2604.22755
 
 ## License
 
-This repository is publicly visible for research preview and reference purposes, but it is not yet released under an open-source license. No permission is granted at this time for redistribution, modification, or production reuse. Licensing terms will be updated after journal publication and institutional review.
+This repository is licensed under the Apache License 2.0. See [`LICENSE`](LICENSE) for details.
