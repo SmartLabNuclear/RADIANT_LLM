@@ -224,7 +224,7 @@ If the UI auto-fills the **user_skills** field, keep it on a writable path under
 
 You only need to change that field if you intentionally mounted a different writable skills location.
 ### 5) Pull and run visual-parser (optional)
-Build a multi-modal JSONL knowledge base before or alongside RADIANT-LLM QA. See [`visual-parser/README.md`](visual-parser/README.md) for CLI flags.
+Build a multi-modal JSONL knowledge base before or alongside RADIANT-LLM QA. See [`visual-parser`](visual-parser/README.md) for CLI flags.
 
 ```bash
 docker pull zev94/radiant-llm:visual-parser-latest
