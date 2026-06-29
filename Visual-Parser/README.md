@@ -130,17 +130,20 @@ Performance / misc:
 
 ## Citation
 
-If you use RADIANT-LLM or the accompanying evaluation materials, please cite the preprint:
+If you use RADIANT-LLM or the accompanying evaluation materials, please cite the journal article:
 
 ```bibtex
-@article{ndum2026radiant,
-  title={RADIANT-LLM: an Agentic Retrieval Augmented Generation Framework for Reliable Decision Support in Safety-Critical Nuclear Engineering},
+@article{ndum2026retrieval,
+  title={A retrieval-augmented, domain-intelligent agentic framework for reliable decision support in safety-critical nuclear engineering},
   author={Ndum, Zavier Ndum and Tao, Jian and Ford, John and Yim, Mansung and Liu, Yang},
-  journal={arXiv preprint arXiv:2604.22755},
-  year={2026}
+  journal={Reliability Engineering \& System Safety},
+  pages={113057},
+  year={2026},
+  publisher={Elsevier}
 }
 ```
 
+Journal: *Reliability Engineering & System Safety* (2026), article 113057  
 Preprint: https://arxiv.org/abs/2604.22755
 
 ---

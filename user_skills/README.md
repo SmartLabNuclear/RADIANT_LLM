@@ -14,3 +14,7 @@ Current examples include:
 - `_template/` as a minimal starting point for building a new skill
 
 If you want to build your own skill, use these folders as reference implementations and adapt the same general structure for your own workflow.
+
+## License
+
+This folder is part of [RADIANT_LLM](../) and is licensed under the [Apache License 2.0](../LICENSE).

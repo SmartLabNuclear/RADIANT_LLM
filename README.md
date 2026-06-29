@@ -35,7 +35,7 @@ This repository also includes [`Visual-Parser`](Visual-Parser/README.md), a stan
 
 ## Highlights of the Results 
 
-### Cross-platform performance on UNFSF Visual-RAG benchmark
+### Cross-platform performance on Used Nuclear Fuel Storage Facility (UNFSF) Visual-RAG benchmark
 
 RADIANT-LLM's Visual-RAG layer, powered by GPT-5 over a local 250-source multi-modal knowledge base constructed with GPT-5.2, achieved the highest overall correctness (CoP = 0.875), perfect visual recall (ViR = 1.000), low hallucination (HR = 0.083), and strong citation performance (CiP = 0.862, CiH = 0.833) on twelve expert-curated UNFSF diagnostic queries. ChatGPT with web access and institutional/frozen GPT-5.2 baselines showed weaker page- and figure-level grounding, with no expert-defined anchor hits (CiH = 0).
 
@@ -306,17 +306,20 @@ RADIANT-LLM supports self-hosted inference via [vLLM](https://docs.vllm.ai) on t
 
 ## Citation
 
-If you use RADIANT-LLM or the accompanying evaluation materials, please cite the preprint:
+If you use RADIANT-LLM or the accompanying evaluation materials, please cite the journal article:
 
 ```bibtex
-@article{ndum2026radiant,
-  title={RADIANT-LLM: an Agentic Retrieval Augmented Generation Framework for Reliable Decision Support in Safety-Critical Nuclear Engineering},
+@article{ndum2026retrieval,
+  title={A retrieval-augmented, domain-intelligent agentic framework for reliable decision support in safety-critical nuclear engineering},
   author={Ndum, Zavier Ndum and Tao, Jian and Ford, John and Yim, Mansung and Liu, Yang},
-  journal={arXiv preprint arXiv:2604.22755},
-  year={2026}
+  journal={Reliability Engineering \& System Safety},
+  pages={113057},
+  year={2026},
+  publisher={Elsevier}
 }
 ```
 
+Journal: *Reliability Engineering & System Safety* (2026), article 113057  
 Preprint: https://arxiv.org/abs/2604.22755
 
 ---

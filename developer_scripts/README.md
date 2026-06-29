@@ -459,3 +459,8 @@ The sbatch job is missing `--enable-auto-tool-choice` and `--tool-call-parser ge
 Then `scancel` the job, `sbatch` again, and reopen the tunnel.
 
 ---
+
+## License
+
+This folder is part of [RADIANT_LLM](../) and is licensed under the [Apache License 2.0](../LICENSE).
+

@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-message: "If you use RADIANT-LLM or the accompanying evaluation materials, please cite this preprint."
-title: "RADIANT-LLM: an Agentic Retrieval Augmented Generation Framework for Reliable Decision Support in Safety-Critical Nuclear Engineering"
+message: "If you use RADIANT-LLM or the accompanying evaluation materials, please cite this article."
+title: "A retrieval-augmented, domain-intelligent agentic framework for reliable decision support in safety-critical nuclear engineering"
 authors:
   - family-names: "Ndum"
     given-names: "Zavier Ndum"
@@ -13,7 +13,7 @@ authors:
   - family-names: "Liu"
     given-names: "Yang"
 year: 2026
-repository-code: "https://github.com/zavierndum/RADIANT-llm"
+repository-code: "https://github.com/SmartLabNuclear/RADIANT_LLM"
 url: "https://arxiv.org/abs/2604.22755"
 identifiers:
   - type: other
@@ -21,7 +21,7 @@ identifiers:
     description: "arXiv preprint identifier"
 preferred-citation:
   type: article
-  title: "RADIANT-LLM: an Agentic Retrieval Augmented Generation Framework for Reliable Decision Support in Safety-Critical Nuclear Engineering"
+  title: "A retrieval-augmented, domain-intelligent agentic framework for reliable decision support in safety-critical nuclear engineering"
   authors:
     - family-names: "Ndum"
       given-names: "Zavier Ndum"
@@ -33,8 +33,10 @@ preferred-citation:
       given-names: "Mansung"
     - family-names: "Liu"
       given-names: "Yang"
-  journal: "arXiv preprint arXiv:2604.22755"
+  journal: "Reliability Engineering & System Safety"
+  start: 113057
   year: 2026
+  publisher: "Elsevier"
   url: "https://arxiv.org/abs/2604.22755"
   identifiers:
     - type: other

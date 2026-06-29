@@ -17,8 +17,12 @@ This keeps the tutorial aligned with the methodology and evaluation context desc
 - Optional: Google Colab or Jupyter for interactive execution
 For the broader project context, installation options, Docker usage, and evaluation materials, see the main [README.md](https://github.com/SmartLabNuclear/RADIANT_LLM/blob/main/README.md).
 ## Citation
-If this repository, the LearningCenter notebook, or the accompanying evaluation materials support your work, please cite the RADIANT-LLM paper.
+If this repository, the LearningCenter notebook, or the accompanying evaluation materials support your work, please cite the RADIANT-LLM journal article.
 - Citation metadata: [CITATION.cff](https://github.com/SmartLabNuclear/RADIANT_LLM/blob/main/CITATION.cff)
+- Journal: *Reliability Engineering & System Safety* (2026), article 113057
 - Preprint: https://arxiv.org/abs/2604.22755
 
+## License
+
+This folder is part of [RADIANT_LLM](../) and is licensed under the [Apache License 2.0](../LICENSE).
 
