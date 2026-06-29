@@ -11,7 +11,7 @@
 
 RADIANT-LLM (**R**etrieval-augmented **D**omain-intelligent assistant for **A**dvanced **N**uclear **T**echnologies) is a local-first, model-agnostic Visual-RAG (visual retrieval-augmented generation) system for secure, document-grounded assistance in Nuclear Science and Engineering (NSE). It combines multi-modal ingestion (text plus visual context) with a structured knowledge base to enable page- and figure-level retrieval from complex technical documents with auditable, citation-backed responses, while respecting privacy/security constraints by keeping data processing local and emphasizing auditable, citation-traceable outputs.
 
-This repository also includes **`visual-parser`**, a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+This repository also includes [`Visual-Parser`](Visual-Parser/README.md), a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
 
 
 ## Table of Contents
@@ -86,7 +86,7 @@ The evaluation package in [`radiant-llm-evaluation/`](radiant-llm-evaluation/) i
 
 This repo also includes `visual-parser`, a standalone PDF ingestion tool that accelerates document processing by generating JSONL knowledge bases (text chunks + figure descriptions + metadata) from curated PDFs. You can run `visual-parser` first to build a high-fidelity, multi-modal KB, then run RADIANT-LLM Visual-RAG for QA over that KB.
 
-The standalone `visual-parser` package is included in this repository and is covered by the same Apache License 2.0 used across the codebase. See [`Visual-Parser`](Visual-Parser/README.md) for package-specific usage details.
+The standalone `visual-parser` package is included in this repository and is covered by the same Apache License 2.0 used across the codebase. See [`Visual-Parser/README.md`](Visual-Parser/README.md) for package-specific usage details.
 
 ---
 
@@ -224,7 +224,7 @@ If the UI auto-fills the **user_skills** field, keep it on a writable path under
 
 You only need to change that field if you intentionally mounted a different writable skills location.
 ### 5) Pull and run visual-parser (optional)
-Build a multi-modal JSONL knowledge base before or alongside RADIANT-LLM QA. See [`visual-parser`](visual-parser/README.md) for CLI flags.
+Build a multi-modal JSONL knowledge base before or alongside RADIANT-LLM QA. See [`Visual-Parser/README.md`](Visual-Parser/README.md) for CLI flags.
 
 ```bash
 docker pull zev94/radiant-llm:visual-parser-latest

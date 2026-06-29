@@ -1,14 +1,20 @@
-﻿[build-system]
-requires      = ["setuptools>=61", "wheel"]
+[build-system]
+requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name        = "visual-parser"
-version     = "2.0.0"
-description = "Standalone Visual-RAG PDF Parser â€” text extraction + Vision-LLM figure descriptions â†’ JSONL"
-readme      = "README.md"
+name = "visual-parser"
+version = "2.0.2"
+description = "Standalone Visual-RAG PDF Parser - text extraction and Vision-LLM figure descriptions to JSONL"
+readme = "README.md"
 requires-python = ">=3.10"
-license     = { text = "Apache-2.0" }
+license = { text = "Apache-2.0" }
+# PEP 621: name+email in one entry -> Author-email only (Author stays empty on PyPI).
+# Split entries so PyPI/pip show both Author and Author-email.
+authors = [
+    { name = "Zavier N. Ndum" },
+    { email = "zavier.ndum@tamu.edu" },
+]
 
 keywords = [
     "pdf", "rag", "nougat", "vision-llm", "ocr",
@@ -45,13 +51,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-ocr = ["pytesseract==0.3.13"]   # requires Tesseract binary installed separately
+ocr = ["pytesseract==0.3.13"]
 dev = ["pytest", "ruff", "mypy"]
 
 [project.urls]
-Homepage      = "https://github.com/SmartLabNuclear/RADIANT_LLM"
-Repository    = "https://github.com/SmartLabNuclear/RADIANT_LLM"
-"Docker Hub"  = "https://hub.docker.com/r/zev94/radiant-llm"
+Homepage = "https://github.com/SmartLabNuclear/RADIANT_LLM"
+Repository = "https://github.com/SmartLabNuclear/RADIANT_LLM"
+"Docker Hub" = "https://hub.docker.com/r/zev94/radiant-llm"
 
 [project.scripts]
 visual-parser = "visual_parser.cli_main:main"
@@ -67,4 +73,3 @@ target-version = "py310"
 [tool.mypy]
 python_version = "3.10"
 ignore_missing_imports = true
-
