@@ -11,6 +11,8 @@ LearningCenter/ contains lightweight educational material that helps readers und
 By default, the notebook uses the repository's own supplementary material PDF:
 - [radiant-llm-supplementary-material.pdf](https://github.com/SmartLabNuclear/RADIANT_LLM/blob/main/radiant-llm-evaluation/radiant-llm-supplementary-material.pdf)
 This keeps the tutorial aligned with the methodology and evaluation context described in the main repository.
+## API Key Setup Guides
+[api-key-guides/](api-key-guides/index.md) has step-by-step, screenshot-illustrated instructions for every API key used by RADIANT-LLM (OpenAI, Gemini, Hugging Face, Tavily, LangSmith, and the optional legacy Google Custom Search path).
 ## Prerequisites
 - Python environment with the notebook dependencies installed
 - An OPENAI_API_KEY for embeddings and response generation

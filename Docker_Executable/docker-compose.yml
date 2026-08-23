@@ -9,6 +9,15 @@
 #
 # Browser: http://localhost:8060
 #
+# Image tags — zev94/radiant-llm on Docker Hub:
+#   :2.0         the original fixed build referenced by the RADIANT-LLM paper. Frozen.
+#   :latest      the rolling tag, always the newest build (used below by default).
+#   :YYYY-MM-DD  planned convention for dated snapshots pushed alongside future
+#                :latest updates, for pinning to a specific known build.
+#   Full tag list: https://hub.docker.com/r/zev94/radiant-llm/tags
+#
+#   To pin a build, change the `image:` line below, e.g. zev94/radiant-llm:2.0
+#
 # Setup:
 #   1. Copy .env.example to .env and fill in your API keys
 #   2. Edit the volume paths below to match your machine

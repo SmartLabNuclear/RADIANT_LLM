@@ -1,6 +1,20 @@
-﻿# RADIANT-LLM
 
+<div align="center">
+
+[![GitHub stars](https://img.shields.io/github/stars/SmartLabNuclear/RADIANT_LLM?style=social)](https://github.com/SmartLabNuclear/RADIANT_LLM/stargazers)
 ![Python 3.12.10](https://img.shields.io/badge/Python-3.12.10-brightgreen.svg)
+[![Built with LangChain](https://img.shields.io/badge/Built%20with-LangChain-1C3C3C.svg)](https://www.langchain.com/)
+[![Docker Pulls](https://img.shields.io/docker/pulls/zev94/radiant-llm.svg)](https://hub.docker.com/r/zev94/radiant-llm)
+[![Last Commit](https://img.shields.io/github/last-commit/SmartLabNuclear/RADIANT_LLM.svg)](https://github.com/SmartLabNuclear/RADIANT_LLM/commits)
+
+### ⭐ If RADIANT-LLM is useful to you, please consider starring the repo, it genuinely helps others discover the project.
+
+### 💬 Using RADIANT-LLM (or its related tools/papers)? I'd appreciate ~5 minutes of your feedback, it directly shapes what gets prioritized next: [Share your experience](https://forms.gle/bU5th8vfPXdcxbNT9)
+
+</div>
+
+# RADIANT-LLM
+
 <!-- ![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg) -->
 
 <p align="center">
@@ -13,20 +27,26 @@ RADIANT-LLM (**R**etrieval-augmented **D**omain-intelligent assistant for **A**d
 
 This repository also includes [`Visual-Parser`](Visual-Parser/README.md), a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
 
-
 ## Table of Contents
 
-1. [Highlights of the Methodology](#highlights-of-the-methodology)
-2. [Highlights of the Results](#highlights-of-the-results)
-3. [LearningCenter](#learningcenter)
-4. [Evaluation Materials](#evaluation-materials)
-5. [Standalone PDF Ingestion: visual-parser](#standalone-pdf-ingestion-visual-parser)
-6. [Prerequisites: API Keys](#prerequisites-api-keys)
-7. [Quick Start: Docker](#quick-start-docker-prebuilt-images)
-8. [Local Models: Grace HPRC vLLM](#local-models-grace-hprc-vllm-optional)
-9. [Troubleshooting](#troubleshooting)
-10. [Citation](#citation)
-11. [License](#license)
+- [Highlights of the Methodology](#highlights-of-the-methodology)
+- [Highlights of the Results](#highlights-of-the-results)
+- [LearningCenter](#learningcenter)
+- [Evaluation Materials](#evaluation-materials)
+- [Standalone PDF Ingestion: visual-parser](#standalone-pdf-ingestion-visual-parser)
+- [Part 1: Prerequisites](#part-1-prerequisites)
+- [Part 2: Prepare Your Local Directory](#part-2-prepare-your-local-directory)
+- [Part 3: Run RADIANT-LLM](#part-3-run-radiant-llm)
+  - [Option A: Docker Compose (recommended)](#option-a-docker-compose-recommended)
+  - [Option B: Plain `docker run` (legacy)](#option-b-plain-docker-run-legacy)
+  - [Verify and Open the UI](#verify-and-open-the-ui)
+- [Local Models: Grace HPRC vLLM](#local-models-grace-hprc-vllm-optional)
+- [Troubleshooting](#troubleshooting)
+- [Related Projects](#related-projects)
+- [Citation](#citation)
+- [License](#license)
+
+New here? Start with **Part 1** and come back once your API keys are ready.
 
 ## Highlights of the Methodology
 - Secure, document-grounded Visual-RAG layer for NSE-based knowledge management 
@@ -90,70 +110,138 @@ The standalone `visual-parser` package is included in this repository and is cov
 
 ---
 
-## Prerequisites: API keys
+## Part 1: Prerequisites
 
-You will typically need at least one LLM provider API key.
+### API Keys
 
-Key sources:
+You will need the following API keys:
 
-- OpenAI API key [here](https://platform.openai.com/api-keys), or Gemini API key (optional, including free access for `gemini-2.5`) [here](https://aistudio.google.com/app/apikey)
-- LangChain (LangSmith) API key (optional, for tracing/logs) [here](https://www.langchain.com/langsmith)
-- Google Custom Search API key [here](https://developers.google.com/custom-search/v1/introduction)
-- Google Custom Search Engine ID [here](https://programmablesearchengine.google.com/controlpanel/overview)
-- Hugging Face API key (`HF_API_KEY`, required for document parsing in RAG) [here](https://huggingface.co/settings/tokens)
+- OpenAI API key (one of OpenAI or Gemini is required, this one needs billing set up): [step-by-step guide](LearningCenter/api-key-guides/openai.md)
+- Gemini API key (one of OpenAI or Gemini is required, this one is free): [step-by-step guide](LearningCenter/api-key-guides/gemini.md)
+- LangChain (LangSmith) API key (optional, for tracing/logs): [step-by-step guide](LearningCenter/api-key-guides/langsmith.md)
+- Hugging Face API key (`HF_API_KEY`, required for document parsing in RAG): [step-by-step guide](LearningCenter/api-key-guides/huggingface.md)
+- Tavily API key (optional, for live web search — the recommended web-search provider): [step-by-step guide](LearningCenter/api-key-guides/tavily.md)
+- Google Custom Search API key and Search Engine ID (optional legacy fallback for web search; Google closed this API to new customers in 2025 and will shut it down entirely on January 1, 2027 — most new users should skip this and use Tavily instead): [step-by-step guide](LearningCenter/api-key-guides/google-custom-search.md)
+
+### Docker
+
+You will also need [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/macOS) or [Docker Engine](https://docs.docker.com/engine/install/) (Linux).
+
+(Optional, for GPU) NVIDIA GPU + recent drivers + NVIDIA Container Toolkit (`docker run --gpus all`).
+
+### The RADIANT-LLM Image
+
+Prebuilt images are published on Docker Hub: **[zev94/radiant-llm](https://hub.docker.com/r/zev94/radiant-llm)**. No `.tar` download or access request needed, pull it directly.
+
+**RADIANT-LLM (chat UI for Visual-RAG):**
+- `zev94/radiant-llm:2.0` — the original fixed build referenced by the RADIANT-LLM paper. Frozen, kept exactly as first published.
+- `zev94/radiant-llm:latest` — the rolling tag, always the newest build.
+- `zev94/radiant-llm:YYYY-MM-DD` — planned convention for dated snapshots pushed alongside future `:latest` updates, for pinning to a specific known build. See the [full tag list](https://hub.docker.com/r/zev94/radiant-llm/tags) for available tags.
+
+**visual-parser (standalone PDF ingestion):**
+- `zev94/radiant-llm:visual-parser-1.0.2` — pinned release.
+- `zev94/radiant-llm:visual-parser-latest` — rolling tag, always the newest build.
+
+Both launch methods in [Part 3](#part-3-run-radiant-llm) pull the image automatically, so you don't need to do this manually, but you can get a head start now if you like:
+
+```bash
+docker pull zev94/radiant-llm:latest
+```
+
 ---
 
-## Quick Start: Docker (prebuilt images)
+## Part 2: Prepare Your Local Directory
 
-Prebuilt images are published on Docker Hub: **[zev94/radiant-llm](https://hub.docker.com/r/zev94/radiant-llm)**.  
+With your API keys ready, set up the folders RADIANT-LLM reads from and writes to, plus your `.env` file. This is a one-time setup. Do it once, before your first run, regardless of which launch method you pick in Part 3.
 
-| Tag | Application |
-|-----|-------------|
-| `2.0`, `latest` | **RADIANT-LLM** - chat UI for Visual-RAG over your knowledge base |
-| `visual-parser-1.0.2`, `visual-parser-latest` | **visual-parser** - PDF to JSONL knowledge-base ingestion |
+### Volume Layout
 
-### Prerequisites
-- Docker Desktop (Windows/macOS) or Docker Engine (Linux)
-- A `.env` file with at least one LLM provider key (`OPENAI_API_KEY`, `GEMINI_API_KEY`, etc.)
-- (Optional, for GPU) NVIDIA GPU + recent drivers + NVIDIA Container Toolkit (`docker run --gpus all`)
+The container uses these logical areas:
 
-### 1) Pull RADIANT-LLM
-```bash
-docker pull zev94/radiant-llm:2.0
-docker pull zev94/radiant-llm:latest
-```
+| Area | Container path | Mode | Purpose |
+|------|----------------|------|---------|
+| Skills | `/radiant-llm/radiant_llm_skills` | read-only | Bundled/developer domain skills |
+| Logs | `/radiant-llm/RADIANT_LLM_Logs` | read-write | Streaming and reasoning logs |
+| Sessions | `/radiant-llm/RADIANT_LLM_Sessions` | read-write | Persistent chat session history |
+| Working data | `/host` | read-write | Working directory for PDF/CSV/image tools |
 
-Windows PowerShell:
+**Security note:** whatever folder you mount to `/host` is the *only* folder the agent can read or write. It can create and browse subfolders inside it freely, but it cannot reach anything outside it, including parent directories or other drives. Pick a folder you're comfortable giving RADIANT-LLM full read/write access to, nothing more.
+
+### Download the Skills Folder
+
+Download [`radiant_llm_skills/`](radiant_llm_skills/) from this repository into your run directory. This ships with the bundled domain skills RADIANT-LLM relies on.
+
+### Create the Logs and Sessions Folders
+
+PowerShell:
+
 ```powershell
-docker pull zev94/radiant-llm:2.0
-docker pull zev94/radiant-llm:latest
+New-Item -ItemType Directory -Force .\RADIANT_LLM_Logs, .\RADIANT_LLM_Sessions | Out-Null
 ```
 
-### 2) Run RADIANT-LLM
+Bash / Linux / macOS / WSL:
+
+```bash
+mkdir -p RADIANT_LLM_Logs RADIANT_LLM_Sessions
+```
+
+### Choose Your Working Directory
+
+RADIANT-LLM also needs a folder to read and write your PDF/CSV/image files from. This can be **any existing folder on your machine** — you don't need to create a new one just for RADIANT-LLM. You'll point Docker at this folder in Part 3.
+
+### Add Your `.env` File
+
+Create a `.env` file in your run directory and set required API keys/secrets. A key-only template is provided at [`Docker_Executable/.env.example`](Docker_Executable/.env.example) (copy and fill values).
+
+**No space between the `=` and your key values.** Your `.env` file should have the following keys (see the links in [Part 1](#api-keys)):
+
+```
+OPENAI_API_KEY=<your_key_value>
+GEMINI_API_KEY=<your_key_value>
+LANGCHAIN_API_KEY=<your_key_value>
+HF_API_KEY=<your_key_value>
+TAVILY_API_KEY=<your_key_value>
+CUSTOM_SEARCH_ENGINE_API_KEY=<your_key_value>
+CUSTOM_SEARCH_ENGINE_ID=<your_key_value>
+```
+
+At minimum, provide one of `OPENAI_API_KEY` or `GEMINI_API_KEY`, plus `HF_API_KEY` for document parsing. Everything else is optional.
+
+---
+
+## Part 3: Run RADIANT-LLM
+
+With Parts 1 and 2 done, you're ready to start RADIANT-LLM. Pick one of the two options below. Docker Compose is recommended for almost everyone.
 
 The container serves the web UI on port **8080** internally, mapped to host port **8060**.
 
-Four volumes are mounted:
-- **Skills** (`radiant_llm_skills/`) — read-only bundled/developer skills
-- **Host data** (`/host`) — working directory for PDF/CSV/image tools
-- **Logs** (`RADIANT_LLM_Logs/`) — streaming and reasoning logs, persisted on host
-- **Sessions** (`RADIANT_LLM_Sessions/`) — chat session history, persisted on host
+### Option A: Docker Compose (recommended)
 
-#### Option A — Docker Compose (recommended)
-
-A ready-to-use `docker-compose.yml` is provided in [`Docker_Executable/`](Docker_Executable/). Edit the volume paths to match your machine, copy `.env.example` to `.env` and fill in your API keys, then:
+RADIANT-LLM can be started with a single command using the [`docker-compose.yml`](Docker_Executable/docker-compose.yml) file included in this repo.
 
 ```bash
 cd Docker_Executable
+```
+
+Edit the volume paths in `docker-compose.yml` to match your folders from Part 2, copy `.env.example` to `.env` and fill in your API keys, then:
+
+```bash
 docker compose up -d          # start in background
 docker compose logs -f        # follow logs
 docker compose down           # stop and remove container
 docker compose up -d --pull always   # pull latest image + restart
 ```
 
+To pin a specific build instead of the newest rolling build, change `zev94/radiant-llm:latest` to a specific tag (e.g. `zev94/radiant-llm:2.0`) on the `image:` line — see [Part 1](#the-radiant-llm-image) for the tag scheme.
+
 Persistent data lands in `Docker_Executable/RADIANT_LLM_Logs/` and `Docker_Executable/RADIANT_LLM_Sessions/` on your host.
 
-#### Option B — Plain `docker run`
+### Option B: Plain `docker run` (legacy)
+
+<details>
+<summary>Docker Compose above is the recommended path. Expand for the equivalent plain <code>docker run</code> syntax.</summary>
+
+Using the folders and `.env` file from Part 2:
 
 Windows PowerShell:
 ```powershell
@@ -194,20 +282,32 @@ docker run -d --name radiant-llm \
   zev94/radiant-llm:latest
 ```
 
-Pin `zev94/radiant-llm:2.0` instead of `latest` for the fixed 2.0 release. Optional (GPU): add `--gpus all`.
-### 3) Open the web GUI
-```text
-http://localhost:8060
+Replace `C:\path\to\...` or `/path/to/...` with the folders you chose in Part 2. Pin a specific tag instead of `:latest` for a known build — see [Part 1](#the-radiant-llm-image). Optional (GPU): add `--gpus all`.
+
+Verify, view logs, stop, and remove:
+```bash
+docker ps
+docker logs -f radiant-llm
+docker stop radiant-llm
+docker rm radiant-llm
 ```
 
-Verify / tail logs:
+</details>
+
+### Verify and Open the UI
+
+Check container:
 ```bash
 docker ps
 docker logs -f radiant-llm
 ```
 
-### 4) Set Working Directory and user_skills in the UI
-Use a path **inside the container** under your mounted host folder, for example:
+Open:
+```text
+http://localhost:8060
+```
+
+**Set Working Directory and user_skills in the UI** — use a path **inside the container** under your mounted host folder, for example:
 ```text
 /host
 ```
@@ -217,14 +317,9 @@ If you mounted a larger host data root, set the working directory to a subfolder
 /host/project_a
 ```
 
-If the UI auto-fills the **user_skills** field, keep it on a writable path under `/host` such as:
-```text
-/host/user_skills
-```
+If the UI auto-fills the **user_skills** field, keep it on a writable path under `/host` such as `/host/user_skills`. You only need to change that field if you intentionally mounted a different writable skills location.
 
-You only need to change that field if you intentionally mounted a different writable skills location.
-### 5) Pull and run visual-parser (optional)
-Build a multi-modal JSONL knowledge base before or alongside RADIANT-LLM QA. See [`Visual-Parser/README.md`](Visual-Parser/README.md) for CLI flags.
+**Pull and run visual-parser (optional)** — build a multi-modal JSONL knowledge base before or alongside RADIANT-LLM QA. See [`Visual-Parser/README.md`](Visual-Parser/README.md) for CLI flags.
 
 ```bash
 docker pull zev94/radiant-llm:visual-parser-latest
@@ -250,8 +345,6 @@ Help:
 ```bash
 docker run --rm zev94/radiant-llm:visual-parser-latest --help
 ```
-
----
 
 ### Offline install (legacy `.tar` releases)
 
@@ -301,6 +394,16 @@ RADIANT-LLM supports self-hosted inference via [vLLM](https://docs.vllm.ai) on t
 
 - **GPU not detected**
   - Verify GPU support with: `docker run --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi`
+
+---
+
+## Related Projects
+
+RADIANT-LLM is part of a broader ecosystem of domain-specific AI agent frameworks that build on this repo's local-LLM and Visual-RAG foundation:
+
+- **[AutoFLUKA](https://github.com/SmartLabNuclear/AutoFLUKA)** — a domain-intelligent LLM agent framework that automates Monte Carlo radiation-transport workflows in FLUKA, from input authoring through execution, self-healing error recovery, and post-processing. It builds on the same local-model and Visual-RAG core documented here; if you're working with FLUKA simulations, AutoFLUKA layers structured domain skills and simulation execution on top of what RADIANT-LLM provides standalone.
+
+A sibling project in the same ecosystem, AutoSAM, also builds on this foundation but does not yet have a public repository.
 
 ---
 
