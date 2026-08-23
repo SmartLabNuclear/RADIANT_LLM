@@ -79,7 +79,7 @@ docker images   # use the tag printed by Docker
 
 ### Model overrides (optional)
 
-Default vision model is **GPT-5.5** when using `--vision-provider gpt`. Override on the command line:
+Default vision model is **GPT-5.4** when using `--vision-provider gpt`. Override on the command line:
 
 ```powershell
 docker run --rm --env-file .env -v "C:\path\to\pdfs:/data" `
@@ -150,6 +150,8 @@ Preprint: https://arxiv.org/abs/2604.22755
 
 ## License
 
-This project is licensed under the Apache License 2.0. See the top-level [`LICENSE`](../LICENSE) for the full license text.
+Copyright 2026 Zavier N. Ndum
+
+This project is licensed under the Apache License 2.0. See the [LICENSE](https://github.com/SmartLabNuclear/RADIANT_LLM/blob/main/LICENSE) file in the RADIANT_LLM repository for the full license text.
 
 
