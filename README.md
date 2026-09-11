@@ -156,14 +156,19 @@ With your API keys ready, set up the folders RADIANT-LLM reads from and writes t
 
 ### Volume Layout
 
-The container uses these logical areas:
+Before you run anything, this is what your run directory needs to look like:
 
-| Area | Container path | Mode | Purpose |
-|------|----------------|------|---------|
-| Skills | `/radiant-llm/radiant_llm_skills` | read-only | Bundled/developer domain skills |
-| Logs | `/radiant-llm/RADIANT_LLM_Logs` | read-write | Streaming and reasoning logs |
-| Sessions | `/radiant-llm/RADIANT_LLM_Sessions` | read-write | Persistent chat session history |
-| Working data | `/host` | read-write | Working directory for PDF/CSV/image tools |
+```text
+Docker_Executable/             <- run docker compose from here
+├── docker-compose.yml
+├── .env                       <- your API keys, copied from .env.example
+├── RADIANT_LLM_Logs/          <- you create this, can stay empty, auto-populated with reasoning/streaming logs
+├── RADIANT_LLM_Sessions/      <- you create this, auto-populated with chat session history
+├── radiant_llm_skills/        <- bundled, ships with the repo one level up; point the docker-compose.yml mount at it
+└── host/                      <- default location; see below, this can be any folder on your machine
+```
+
+`radiant_llm_skills/` already comes from cloning the repo — it lives one level up from `Docker_Executable/`, and `docker-compose.yml`'s skills mount line needs to point at it (or wherever else you've put it). `RADIANT_LLM_Logs/` and `RADIANT_LLM_Sessions/` you create yourself, empty is fine. The working-data folder doesn't have to sit anywhere near this repo at all: point `docker-compose.yml`'s `/host` mount line at any folder anywhere on your machine, wherever your PDFs/CSVs/images actually live.
 
 **Security note:** whatever folder you mount to `/host` is the *only* folder the agent can read or write. It can create and browse subfolders inside it freely, but it cannot reach anything outside it, including parent directories or other drives. Pick a folder you're comfortable giving RADIANT-LLM full read/write access to, nothing more.
 
