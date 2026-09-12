@@ -112,6 +112,26 @@ The standalone `visual-parser` package is included in this repository and is cov
 
 ## Part 1: Prerequisites
 
+### Get RADIANT-LLM
+
+Clone this repository, or download it as a ZIP if you don't have git installed:
+
+```bash
+git clone https://github.com/SmartLabNuclear/RADIANT_LLM.git
+cd RADIANT_LLM
+```
+
+No git? Use the green **Code → Download ZIP** button on this repo's GitHub page instead, then unzip it.
+
+The default, and simplest, path is to run RADIANT-LLM directly from inside this cloned folder. Cloning gives you:
+
+- `Docker_Executable/docker-compose.yml` and `Docker_Executable/.env.example` — copy `.env.example` to `.env` and fill in your API keys.
+- `radiant_llm_skills/`, the bundled domain skills. Required, and already included, so there's nothing to do here.
+
+[Part 2](#part-2-prepare-your-local-directory) has you create the remaining folders (`RADIANT_LLM_Logs/`, `RADIANT_LLM_Sessions/`) and your `.env` file. [Part 3](#part-3-run-radiant-llm) is where you actually start the container.
+
+Prefer to keep RADIANT-LLM's config separate from a git checkout? Copy the items listed above into whatever folder you'd rather run RADIANT-LLM from, then treat that folder as "this repo folder" for the rest of these instructions. Most people can skip this and just use the cloned folder as-is.
+
 ### API Keys
 
 You will need the following API keys:
