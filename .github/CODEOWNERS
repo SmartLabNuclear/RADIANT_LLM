@@ -1,0 +1,13 @@
+# Requires maintainer review before merge for anything that can affect
+# which skills the runtime treats as trusted/bundled vs. untrusted. A plain
+# SHA-256 manifest has no secret key -- anyone who can push a poisoned skill
+# file *and* a matching regenerated MANIFEST.json in the same commit can
+# make the runtime treat it as official. This file is the actual control
+# against that, not secrecy of the hashing script.
+#
+# user_skills/ is intentionally NOT listed here -- it's meant to be freely
+# user-editable, and edits there are correctly routed through the untrusted-
+# skill scanner at runtime regardless of who touches them.
+
+/radiant_llm_skills/       @zavierndum
+/maintenance_scripts/      @zavierndum
