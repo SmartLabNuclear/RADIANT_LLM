@@ -406,7 +406,19 @@ RADIANT-LLM supports self-hosted inference via [vLLM](https://docs.vllm.ai) on t
 
 ## Troubleshooting
 
-- **Gemini "thinking" models can fail tool calls with a missing `thought_signature` error.** A tool call fails with `Invalid argument provided to Gemini: 400 Function call is missing a thought_signature in functionCall parts...`, sometimes even after an earlier tool call in the same session succeeded (e.g. `visual-parser` completes fine, a later multi-step query fails). Newer Gemini "thinking" models attach a `thought_signature` to function-call responses that must be threaded back through subsequent turns for multi-step tool-calling to work correctly; fixing it needs `langchain-google-genai>=3.1.0`, which needs `langchain-core>=1.x` -- incompatible with this app's current `langchain==0.3.13`/`langchain-core==0.3.60` stack. Not specific to one Gemini version. **Status: open**, requires a full langchain-ecosystem migration (tracked separately, not yet scheduled). **Workaround:** prefer an OpenAI/GPT model for tool-heavy, multi-step workflows until resolved.
+### Known Issues Log
+
+Issues reported during real use, each with a number-date ID so they're easy to reference.
+
+#### Issue #001-2026-09-15: Gemini "thinking" models can fail tool calls with a missing `thought_signature` error
+
+- **Symptom:** A tool call fails with `Invalid argument provided to Gemini: 400 Function call is missing a thought_signature in functionCall parts...`. This can happen even after an earlier tool call in the same session succeeded (e.g. `visual-parser` completes fine, a later multi-step query fails).
+- **Cause:** Newer Gemini "thinking" models attach a `thought_signature` to function-call responses that must be threaded back through subsequent turns for multi-step tool-calling to work correctly. The fix needs `langchain-google-genai>=3.1.0`, which needs `langchain-core>=1.x` -- incompatible with this app's current `langchain==0.3.13`/`langchain-core==0.3.60` stack. Not specific to one Gemini model version. Shared root cause confirmed across AutoSAM, AutoFLUKA, and RADIANT-LLM -- all three pin the identical langchain version set.
+- **Investigation findings (2026-09-15):** Checked PyPI directly -- the full langchain 1.x ecosystem (`langchain-core` 1.6.3, `langchain` 1.4.0, `langchain-google-genai` 4.4.0, `langchain-openai` 1.6.2, `langchain-chroma` 1.1.0, `langchain-community` 0.4.2, `langchain-experimental` 0.4.2, `langchain-huggingface` 1.2.2) is mutually compatible today -- confirmed `langchain-community`/`langchain-experimental`'s actual wheel metadata requires `langchain-core>=1.4.0,<2.0.0` despite their own 0.4.x version numbers, so this isn't blocked by an immature ecosystem. The legacy classes these apps use (`AgentExecutor`, `create_tool_calling_agent`, `create_openai_tools_agent`/`initialize_agent`, `ConversationBufferWindowMemory`, `RetrievalQAWithSourcesChain`) are not removed in 1.0 -- they move to a new `langchain-classic` package as drop-in replacements at a new import path, not a rewrite. The one unverified risk: `CallbackManager`'s new location/behavior, which likely drives this app's live reasoning/tool-call streaming -- needs a spike before committing to the full migration. Tool-registration counts confirmed by grep: 29 (AutoSAM), 24 (AutoFLUKA), 14 (RADIANT-LLM) -- each needs post-migration smoke testing.
+- **Fix:** Not yet started. Planned approach: pilot the migration on RADIANT-LLM first (dev tree backed up beforehand), validate the `CallbackManager`/streaming behavior and confirm the Gemini fix actually works end-to-end, then roll the same change to AutoSAM, AutoFLUKA, and the Visual-Parser sub-tool. When this ships, this entry (and the equivalent one in the other affected repos) gets marked Resolved.
+- **Status:** Open, actively being scoped -- not yet started. Workaround: prefer an OpenAI/GPT model for tool-heavy, multi-step workflows until this is resolved.
+
+### General
 
 - **pull access denied / repository does not exist**
   - Log in: `docker login`
