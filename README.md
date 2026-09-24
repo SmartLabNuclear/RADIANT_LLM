@@ -38,6 +38,7 @@ This repository also includes [`Visual-Parser`](Visual-Parser/README.md), a stan
 - [Part 2: Prepare Your Local Directory](#part-2-prepare-your-local-directory)
 - [Part 3: Run RADIANT-LLM](#part-3-run-radiant-llm)
   - [Option A: Docker Compose (recommended)](#option-a-docker-compose-recommended)
+  - [GPU Acceleration (Optional)](#gpu-acceleration-optional)
   - [Option B: Plain `docker run` (legacy)](#option-b-plain-docker-run-legacy)
   - [Verify and Open the UI](#verify-and-open-the-ui)
 - [Local Models: Grace HPRC vLLM](#local-models-grace-hprc-vllm-optional)
@@ -147,7 +148,7 @@ You will need the following API keys:
 
 You will also need [Docker Desktop](https://www.docker.com/products/docker-desktop/) (Windows/macOS) or [Docker Engine](https://docs.docker.com/engine/install/) (Linux).
 
-(Optional, for GPU) NVIDIA GPU + recent drivers + NVIDIA Container Toolkit (`docker run --gpus all`).
+(Optional, for GPU) NVIDIA GPU + a driver supporting CUDA 13.0+ (r580 or newer — check with `nvidia-smi`). Docker Compose picks this up automatically via `start.ps1`/`start.sh` — see [Option A](#option-a-docker-compose-recommended) below.
 
 ### The RADIANT-LLM Image
 
@@ -250,6 +251,16 @@ cd Docker_Executable
 
 Edit the volume paths in `docker-compose.yml` to match your folders from Part 2, copy `.env.example` to `.env` and fill in your API keys, then:
 
+```powershell
+.\start.ps1                   # Windows -- start in background, auto-detects GPU
+```
+
+```bash
+./start.sh                    # Linux/macOS -- start in background, auto-detects GPU
+```
+
+Either script checks for a GPU automatically (via `nvidia-smi`) and starts with GPU acceleration when one is found, or falls back to CPU-only otherwise — one command either way, nothing to remember. Or use plain Compose directly (CPU-only always):
+
 ```bash
 docker compose up -d          # start in background
 docker compose logs -f        # follow logs
@@ -260,6 +271,18 @@ docker compose up -d --pull always   # pull latest image + restart
 To pin a specific build instead of the newest rolling build, change `zev94/radiant-llm:latest` to a specific tag (e.g. `zev94/radiant-llm:2.0`) on the `image:` line — see [Part 1](#the-radiant-llm-image) for the tag scheme.
 
 Persistent data lands in `Docker_Executable/RADIANT_LLM_Logs/` and `Docker_Executable/RADIANT_LLM_Sessions/` on your host.
+
+### GPU Acceleration (Optional)
+
+The agent's PDF-parsing tool (Nougat) uses an NVIDIA GPU automatically when one is available, which can noticeably speed up document processing compared to CPU. Nothing here is required — everything above already works, GPU or not.
+
+`.\start.ps1` / `./start.sh` (above) already handle this for you. If you'd rather apply it manually instead:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+```
+
+Requires an NVIDIA driver supporting CUDA 13.0+ (r580 or newer) on the host — check with `nvidia-smi`; update your driver from [nvidia.com/Download](https://www.nvidia.com/Download/index.aspx) if it reports an older CUDA version.
 
 ### Option B: Plain `docker run` (legacy)
 
@@ -432,7 +455,10 @@ Issues reported during real use, each with a number-date ID so they're easy to r
   - Mount skills at `/radiant-llm/radiant_llm_skills`, or set **Skills directory** in Settings to your custom mount path.
 
 - **GPU not detected**
-  - Verify GPU support with: `docker run --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi`
+  - Confirm the host sees the GPU at all: `nvidia-smi` (run from WSL if on Windows).
+  - Confirm your driver supports CUDA 13.0+: check the `CUDA Version` line in that same output — needs to read 13.0 or higher (roughly r580+). Update from [nvidia.com/Download](https://www.nvidia.com/Download/index.aspx) if it reads lower (e.g. 12.x).
+  - Confirm Docker can reach it: `docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi`.
+  - If you started with plain `docker compose up -d` instead of `.\start.ps1`/`./start.sh`, that's expected — GPU acceleration only applies when `docker-compose.gpu.yml` is in effect (see [GPU Acceleration](#gpu-acceleration-optional) in Part 3).
 
 ---
 
