@@ -1,6 +1,6 @@
 # visual-parser (Standalone Visual-RAG PDF Ingestion)
 
-![Python 3.12.10](https://img.shields.io/badge/Python-3.12.10-brightgreen.svg)
+[Python 3.12.10](https://img.shields.io/badge/Python-3.12.10-brightgreen.svg)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.1%2B-ee4c2c.svg)
 ![LangChain](https://img.shields.io/badge/LangChain-0.1%2B-1C3C3C.svg)
 ![CUDA](https://img.shields.io/badge/CUDA-optional-76B900.svg)
@@ -9,6 +9,20 @@
 
 1) Run `visual-parser` on curated PDFs to generate JSONL KB files.
 2) Point any downstream RAG system at the generated KB for QA over it — RADIANT-LLM, AutoSAM, and AutoFLUKA all consume the identical JSONL/registry format, so the same generated KB works with any of them without re-parsing.
+
+## Install via pip
+
+```bash
+pip install visual-parser
+```
+
+Then run it directly against a folder of PDFs:
+
+```bash
+visual-parser --input-dir /path/to/pdfs --output-dir /path/to/pdfs
+```
+
+See [Common configuration flags](#common-configuration-flags) below for the full flag list, or [Run with Docker](#run-with-docker-docker-hub) if you'd rather not manage a local Python environment. `pip install` doesn't get you GPU acceleration by default — see [GPU support](#gpu-support) below.
 
 ## Outputs (JSONL KB)
 
@@ -23,10 +37,10 @@ By default, the pipeline writes:
 `--text-mode nougat` (the default) auto-detects and uses a CUDA GPU when one is available (`torch.cuda.is_available()`) — no flags or code changes needed. **The catch:** a plain `pip install visual-parser` (or `pip install torch`) resolves to PyPI's default **CPU-only** torch wheel, even on a machine with a real GPU. To actually get GPU acceleration, install the matching CUDA build from PyTorch's own index instead, e.g.:
 
 ```bash
-pip install torch --index-url https://download.pytorch.org/whl/cu126
+pip install torch --index-url https://download.pytorch.org/whl/cu130
 ```
 
-(pick the CUDA tag matching your driver — see [pytorch.org/get-started](https://pytorch.org/get-started/locally/)). Installing `visual-parser` again afterward won't silently downgrade this back to CPU, since the exact version you already have satisfies its own dependency requirement. Verify with:
+Use `cu130` or newer, not `cu126` — `cu126`'s compiled kernels only cover compute capability up to `sm_90` (Hopper); a newer GPU (e.g. Blackwell, `sm_120`) will show `torch.cuda.is_available() == True` but fail on the first real kernel launch. `cu130` covers Blackwell and every older architecture `cu126` did (confirmed live on both an older GPU and a Blackwell laptop this session); it requires an r580+ NVIDIA driver on the host either way. Pick the exact tag matching your driver at [pytorch.org/get-started](https://pytorch.org/get-started/locally/) if `cu130` doesn't apply. Installing `visual-parser` again afterward won't silently downgrade this back to CPU, since the exact version you already have satisfies its own dependency requirement. Verify with:
 
 ```bash
 python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else None)"
