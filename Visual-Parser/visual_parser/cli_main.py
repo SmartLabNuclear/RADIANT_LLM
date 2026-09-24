@@ -52,13 +52,21 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         epilog=USAGE_EXAMPLES,
     )
 
+    from visual_parser import __version__
+    parser.add_argument(
+        "--version", "-V",
+        action="version",
+        version=f"visual-parser {__version__}",
+    )
+
     io_group = parser.add_argument_group("Paths")
     io_group.add_argument(
         "--input-dir",
         "-i",
-        required=True,
+        required=False,
         metavar="DIR",
-        help="Directory to scan for PDF files (searched recursively).",
+        help="Directory to scan for PDF files (searched recursively). "
+             "Required unless --list-models is given.",
     )
     io_group.add_argument(
         "--output-dir",
@@ -161,6 +169,17 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 
     misc_group = parser.add_argument_group("Miscellaneous")
     misc_group.add_argument(
+        "--list-models",
+        action="store_true",
+        help=(
+            "Print the live, currently-available vision models for gpt and/or "
+            "gemini (whichever of OPENAI_API_KEY / GEMINI_API_KEY is set in "
+            ".env), then exit -- no PDF processing. Replaces the static "
+            "example names shown in --vision-model's help text above, which "
+            "can go stale as providers add/retire models."
+        ),
+    )
+    misc_group.add_argument(
         "--rebuild",
         action="store_true",
         help=(
@@ -192,6 +211,14 @@ def _build_arg_parser() -> argparse.ArgumentParser:
 def main(argv=None) -> int:
     parser = _build_arg_parser()
     args = parser.parse_args(argv)
+
+    if args.list_models:
+        from visual_parser.cli import _print_available_models
+
+        return _print_available_models()
+
+    if not args.input_dir:
+        parser.error("--input-dir is required (unless --list-models is given).")
 
     if args.vision_model is None:
         args.vision_model = (

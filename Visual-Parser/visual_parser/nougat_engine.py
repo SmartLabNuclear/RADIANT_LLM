@@ -14,7 +14,7 @@ from collections import defaultdict
 from pathlib import Path
 from typing import List, Optional
 
-import fitz  # PyMuPDF
+import pymupdf as fitz  # PyMuPDF -- "fitz" is the deprecated legacy import name
 import torch
 from PIL import Image
 from transformers import (
@@ -173,9 +173,13 @@ class RunningVarTorch:
     def variance(self):
         if self.values is None:
             return None
+        # unbiased=False -- with only one sample in the window (the first
+        # push), torch's default unbiased variance divides by N-1=0 and
+        # returns NaN, which then pollutes the stopping-criteria check for
+        # up to window_size iterations.
         if self.norm:
-            return torch.var(self.values, 1) / self.values.shape[1]
-        return torch.var(self.values, 1)
+            return torch.var(self.values, 1, unbiased=False) / self.values.shape[1]
+        return torch.var(self.values, 1, unbiased=False)
 
 
 class StoppingCriteriaScores(StoppingCriteria):

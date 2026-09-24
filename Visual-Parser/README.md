@@ -1,12 +1,14 @@
 # visual-parser (Standalone Visual-RAG PDF Ingestion)
 
 ![Python 3.12.10](https://img.shields.io/badge/Python-3.12.10-brightgreen.svg)
-<!-- ![PyTorch](https://img.shields.io/badge/PyTorch-2.0%2B-ee4c2c.svg) -->
+![PyTorch](https://img.shields.io/badge/PyTorch-2.1%2B-ee4c2c.svg)
+![LangChain](https://img.shields.io/badge/LangChain-0.1%2B-1C3C3C.svg)
+![CUDA](https://img.shields.io/badge/CUDA-optional-76B900.svg)
 
-`visual-parser` is a standalone document-ingestion tool that converts PDFs into a multi-modal JSONL knowledge base (text chunks + figure descriptions + metadata). The intended workflow is:
+`visual-parser` is a standalone document-ingestion tool that converts PDFs into a multi-modal JSONL knowledge base (text chunks + figure descriptions + metadata). It was originally extracted from [RADIANT-LLM](https://github.com/SmartLabNuclear/RADIANT_LLM) — born out of the need for a fast, standalone PDF-ingestion path independent of any chatbot. The intended workflow is:
 
 1) Run `visual-parser` on curated PDFs to generate JSONL KB files.
-2) Run RADIANT-LLM Visual-RAG for QA over the generated KB.
+2) Point any downstream RAG system at the generated KB for QA over it — RADIANT-LLM, AutoSAM, and AutoFLUKA all consume the identical JSONL/registry format, so the same generated KB works with any of them without re-parsing.
 
 ## Outputs (JSONL KB)
 
@@ -16,6 +18,20 @@ By default, the pipeline writes:
 - `03_metadata_kb.jsonl`: document metadata rows (title/author/etc.).
 - `04_processed_pdfs.txt`: a tracker so re-runs only process new PDFs (unless `--rebuild`).
 
+## GPU support
+
+`--text-mode nougat` (the default) auto-detects and uses a CUDA GPU when one is available (`torch.cuda.is_available()`) — no flags or code changes needed. **The catch:** a plain `pip install visual-parser` (or `pip install torch`) resolves to PyPI's default **CPU-only** torch wheel, even on a machine with a real GPU. To actually get GPU acceleration, install the matching CUDA build from PyTorch's own index instead, e.g.:
+
+```bash
+pip install torch --index-url https://download.pytorch.org/whl/cu126
+```
+
+(pick the CUDA tag matching your driver — see [pytorch.org/get-started](https://pytorch.org/get-started/locally/)). Installing `visual-parser` again afterward won't silently downgrade this back to CPU, since the exact version you already have satisfies its own dependency requirement. Verify with:
+
+```bash
+python -c "import torch; print(torch.cuda.is_available(), torch.cuda.get_device_name(0) if torch.cuda.is_available() else None)"
+```
+
 ## API keys (`.env`)
 
 Provide at least one provider:
@@ -24,6 +40,7 @@ Provide at least one provider:
 
 Optional:
 - `HF_TOKEN` (if you use gated Hugging Face models)
+- `PORTKEY_API_KEY` + `PORTKEY_OPENAI_PROVIDER_SLUG` — routes OpenAI-family calls (vision LLM + `--list-models`) through a [Portkey](https://portkey.ai) gateway instead of OpenAI directly, exposing whatever models your Portkey account has access to. Only takes effect when `OPENAI_API_KEY` is absent/empty — direct OpenAI always wins when both are set. Set `VISUAL_PARSER_FORCE_PORTKEY=true` to force Portkey even when `OPENAI_API_KEY` is also present (e.g. set at the OS/system level, where commenting it out of `.env` alone can't disable it).
 
 ## Run with Docker (Docker Hub)
 
@@ -68,6 +85,17 @@ docker run --rm --env-file .env `
   -v "C:\path\to\out:/out" `
   zev94/radiant-llm:visual-parser-latest `
   --input-dir /data --output-dir /out
+```
+
+### GPU acceleration (Docker)
+
+Add `--gpus all` to any of the run commands above to use an NVIDIA GPU for `--text-mode nougat` (the default) instead of CPU — confirmed working out of the box with Docker Desktop's WSL2 backend, no extra host setup needed on most machines. Omit it (or run on a machine with no GPU) and it falls back to CPU automatically:
+
+```powershell
+docker run --rm --gpus all --env-file .env `
+  -v "C:\path\to\pdfs:/data" `
+  zev94/radiant-llm:visual-parser-latest `
+  --input-dir /data --output-dir /data
 ```
 
 ### Offline install (legacy `.tar`)
@@ -124,6 +152,8 @@ Vision LLM:
 Performance / misc:
 - `--max-workers 4`
 - `--rebuild` (reprocess everything; ignore `04_processed_pdfs.txt`)
+- `--list-models` — print the live, currently-available vision models for whichever provider(s) you have a key configured for, then exit (no PDF processing). Reflects Portkey's catalog too when that's what's active.
+- `--version` / `-V`
 - `--log-level DEBUG|INFO|WARNING|ERROR`
 
 ---
@@ -152,6 +182,6 @@ Preprint: https://arxiv.org/abs/2604.22755
 
 Copyright 2026 Zavier N. Ndum
 
-This project is licensed under the Apache License 2.0. See the [LICENSE](https://github.com/SmartLabNuclear/RADIANT_LLM/blob/main/LICENSE) file in the RADIANT_LLM repository for the full license text.
+This project is licensed under the Apache License 2.0, the same license as its parent project, [RADIANT-LLM](https://github.com/SmartLabNuclear/RADIANT_LLM). See the [LICENSE](https://github.com/SmartLabNuclear/RADIANT_LLM/blob/main/LICENSE) file in the RADIANT_LLM repository, or the `LICENSE` file bundled with this package, for the full license text.
 
 

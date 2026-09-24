@@ -20,12 +20,14 @@ from typing import Dict, List, Optional
 
 from visual_parser.config import ParserConfig
 from visual_parser.figure_describer import describe_figures_for_new_pdfs
-from visual_parser.jsonl_writer import append_to_jsonl, make_document_id
+from visual_parser.jsonl_writer import append_to_jsonl, make_document_id, read_jsonl
 from visual_parser.metadata_extractor import extract_pdf_metadata
 from visual_parser.pdf_tracker import (
     PROCESSED_REGISTRY,
     find_new_pdfs,
+    load_processed_pdfs,
     mark_as_processed,
+    save_processed_pdfs,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,6 +46,58 @@ def _setup_logging(config: ParserConfig) -> None:
     console.setLevel(logging.INFO)
     console.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
     logging.getLogger().addHandler(console)
+
+
+def _recover_stale_registry_entries(input_dir: str, output_dir: str, registry_path: str) -> int:
+    """
+    Remove processed-PDF registry entries for files that have no chunk records.
+    This recovers from earlier failed runs that incorrectly marked PDFs as done.
+    """
+    if not os.path.exists(registry_path):
+        return 0
+
+    processed = load_processed_pdfs(registry_path)
+    if not processed:
+        return 0
+
+    existing_basenames = {
+        filename.lower()
+        for root, _, files in os.walk(input_dir)
+        for filename in files
+        if filename.lower().endswith(".pdf")
+    }
+    if not existing_basenames:
+        return 0
+
+    chunks_path = os.path.join(output_dir, "01_chunks_kb.jsonl")
+    visuals_path = os.path.join(output_dir, "02_visuals_kb.jsonl")
+    extracted_sources = set()
+
+    for row in read_jsonl(chunks_path):
+        source = row.get("source")
+        if isinstance(source, str) and source.lower().endswith(".pdf"):
+            extracted_sources.add(source.lower())
+
+    for row in read_jsonl(visuals_path):
+        source = row.get("source")
+        if isinstance(source, str) and source.lower().endswith(".pdf"):
+            extracted_sources.add(source.lower())
+
+    stale = [
+        name for name in processed
+        if name.lower() in existing_basenames and name.lower() not in extracted_sources
+    ]
+    if not stale:
+        return 0
+
+    cleaned = [name for name in processed if name not in stale]
+    save_processed_pdfs(registry_path, sorted(set(cleaned)))
+    logger.warning(
+        "Recovered %d stale processed registry entries: %s",
+        len(stale),
+        ", ".join(sorted(stale)),
+    )
+    return len(stale)
 
 
 def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
@@ -219,6 +273,12 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
         new_pdfs = find_new_pdfs(config.input_dir, rebuild=config.rebuild)
         summary["new_pdfs_found"] = len(new_pdfs)
 
+        if not new_pdfs and not config.rebuild:
+            recovered = _recover_stale_registry_entries(config.input_dir, output_dir, registry_path)
+            if recovered:
+                new_pdfs = find_new_pdfs(config.input_dir, rebuild=False)
+                summary["new_pdfs_found"] = len(new_pdfs)
+
         if not new_pdfs:
             print("No new PDFs found. Nothing to do.")
             return summary
@@ -247,20 +307,54 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
         if config.text_mode == "nougat":
             print("[Step 1] Running Nougat text extraction …")
             from visual_parser.nougat_engine import NougatInitializer
-            from visual_parser.text_extractor import nougat_extract_pdfs
+            from visual_parser.text_extractor import lightweight_extract_pdfs, nougat_extract_pdfs
 
-            processor, model, device = NougatInitializer(config.nougat_model)
-            nougat_summary, processed_basenames, failed_basenames, chunk_count = nougat_extract_pdfs(
-                only_process_these = new_pdfs,
-                output_dir         = output_dir,
-                processor          = processor,
-                model              = model,
-                device             = device,
-                chunk_size         = config.chunk_size,
-                chunk_overlap      = config.chunk_overlap,
-                max_workers        = config.max_workers,
-            )
-            print(nougat_summary)
+            try:
+                processor, model, device = NougatInitializer(config.nougat_model)
+                nougat_summary, processed_basenames, failed_basenames, chunk_count = nougat_extract_pdfs(
+                    only_process_these = new_pdfs,
+                    output_dir         = output_dir,
+                    processor          = processor,
+                    model              = model,
+                    device             = device,
+                    chunk_size         = config.chunk_size,
+                    chunk_overlap      = config.chunk_overlap,
+                    max_workers        = config.max_workers,
+                    rebuild            = config.rebuild,
+                )
+                print(nougat_summary)
+            except Exception as exc:
+                logger.error("Nougat initialization/extraction failed: %s", exc)
+                print(f"[Step 1] Nougat failed ({exc}). Falling back to lightweight extraction.")
+                lw_summary, processed_basenames, failed_basenames, chunk_count = lightweight_extract_pdfs(
+                    only_process_these = new_pdfs,
+                    output_dir         = output_dir,
+                    chunk_size         = config.chunk_size,
+                    chunk_overlap      = config.chunk_overlap,
+                    max_workers        = config.max_workers,
+                    rebuild            = config.rebuild,
+                )
+                print(lw_summary)
+            else:
+                if failed_basenames:
+                    failed_set = set(failed_basenames)
+                    remaining = [p for p in new_pdfs if os.path.basename(p) in failed_set]
+                    logger.warning(
+                        "Nougat produced no text for %d PDF(s). Falling back to lightweight extraction.",
+                        len(remaining),
+                    )
+                    lw_summary, lw_processed, lw_failed, lw_chunk_count = lightweight_extract_pdfs(
+                        only_process_these = remaining,
+                        output_dir         = output_dir,
+                        chunk_size         = config.chunk_size,
+                        chunk_overlap      = config.chunk_overlap,
+                        max_workers        = config.max_workers,
+                        rebuild            = config.rebuild,
+                    )
+                    print(lw_summary)
+                    processed_basenames.extend(lw_processed)
+                    failed_basenames = [name for name in failed_basenames if name not in set(lw_processed)]
+                    chunk_count += lw_chunk_count
 
         else:  # "lightweight"
             print("[Step 1] Running lightweight (PyMuPDF) text extraction …")
@@ -272,6 +366,7 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                 chunk_size         = config.chunk_size,
                 chunk_overlap      = config.chunk_overlap,
                 max_workers        = config.max_workers,
+                rebuild            = config.rebuild,
             )
             print(lw_summary)
 

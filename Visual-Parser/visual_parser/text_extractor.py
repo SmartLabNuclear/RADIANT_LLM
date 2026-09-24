@@ -30,7 +30,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Tuple
 
-import fitz  # PyMuPDF
+import pymupdf as fitz  # PyMuPDF -- "fitz" is the deprecated legacy import name
 from PIL import Image
 
 from visual_parser.jsonl_writer import append_to_jsonl, make_document_id
@@ -69,6 +69,7 @@ def nougat_extract_pdfs(
     chunk_size: int = 500,
     chunk_overlap: int = 100,
     max_workers: int = 4,
+    rebuild: bool = False,
 ) -> Tuple[str, List[str], List[str], int]:
     """
     Extract text from each PDF in *only_process_these* using the Nougat model,
@@ -83,6 +84,15 @@ def nougat_extract_pdfs(
         chunk_size:         Characters per chunk.
         chunk_overlap:      Overlap between adjacent chunks.
         max_workers:        Thread-pool size for parallel PDF processing.
+        rebuild:            When True, reprocess every PDF in
+                             *only_process_these* even if its basename is
+                             already in the 04_processed_pdfs.txt registry --
+                             mirrors find_new_pdfs()'s own rebuild semantics,
+                             which this function otherwise silently
+                             overrides (only_process_these already came from
+                             a rebuild-aware find_new_pdfs() call upstream,
+                             but this function used to re-apply its own,
+                             rebuild-blind registry filter on top of that).
 
     Returns:
         (summary_message, successful_basenames, failed_basenames, chunks_written_this_run)
@@ -91,9 +101,12 @@ def nougat_extract_pdfs(
 
     from visual_parser.nougat_engine import RasterizePaper, StoppingCriteriaScores
 
-    registry_path  = os.path.join(output_dir, "04_processed_pdfs.txt")
-    processed_set  = set(load_processed_pdfs(registry_path))
-    pdfs_to_run    = [p for p in only_process_these if os.path.basename(p) not in processed_set]
+    if rebuild:
+        pdfs_to_run = list(only_process_these)
+    else:
+        registry_path = os.path.join(output_dir, "04_processed_pdfs.txt")
+        processed_set = set(load_processed_pdfs(registry_path))
+        pdfs_to_run   = [p for p in only_process_these if os.path.basename(p) not in processed_set]
 
     if not pdfs_to_run:
         return "No new PDFs to process (Nougat).", [], [], 0
@@ -126,15 +139,19 @@ def nougat_extract_pdfs(
                         return_tensors="pt",
                     ).pixel_values.to(device)
 
-                outputs = model.generate(
-                    pixel_values,
+                gen_kwargs = dict(
                     min_length=1,
                     max_length=3584,
-                    bad_words_ids=[[processor.tokenizer.unk_token_id]],
                     return_dict_in_generate=True,
                     output_scores=True,
                     stopping_criteria=StoppingCriteriaList([StoppingCriteriaScores()]),
                 )
+                # Guard against tokenizers with no unk token -- passing
+                # bad_words_ids=[[None]] unconditionally would otherwise error.
+                unk_id = getattr(processor.tokenizer, "unk_token_id", None)
+                if unk_id is not None:
+                    gen_kwargs["bad_words_ids"] = [[unk_id]]
+                outputs = model.generate(pixel_values, **gen_kwargs)
 
                 generated_text = processor.batch_decode(outputs[0], skip_special_tokens=True)[0]
                 # post_process_generation was removed in newer tokenizers builds;
@@ -146,7 +163,7 @@ def nougat_extract_pdfs(
                 except AttributeError:
                     pass
 
-                for i, chunk_text in enumerate(text_splitter.split_text(generated_text)):
+                for i, chunk_text in enumerate(text_splitter.split_text(generated_text or "")):
                     chunks.append({
                         "source":      pdf_name,
                         "page":        page_num + 1,
@@ -247,6 +264,7 @@ def lightweight_extract_pdfs(
     chunk_size: int = 500,
     chunk_overlap: int = 100,
     max_workers: int = 4,
+    rebuild: bool = False,
 ) -> Tuple[str, List[str], List[str], int]:
     """
     Extract text from each PDF in *only_process_these* using PyMuPDF's native
@@ -261,15 +279,23 @@ def lightweight_extract_pdfs(
         chunk_size:         Characters per chunk.
         chunk_overlap:      Overlap between adjacent chunks.
         max_workers:        Thread-pool size for parallel PDF processing.
+        rebuild:            When True, reprocess every PDF in
+                             *only_process_these* regardless of the
+                             04_processed_pdfs.txt registry. See
+                             nougat_extract_pdfs()'s docstring for why this
+                             exists as its own parameter here too.
 
     Returns:
         (summary_message, successful_basenames, failed_basenames, chunks_written_this_run)
     """
     from io import BytesIO
 
-    registry_path  = os.path.join(output_dir, "04_processed_pdfs.txt")
-    processed_set  = set(load_processed_pdfs(registry_path))
-    pdfs_to_run    = [p for p in only_process_these if os.path.basename(p) not in processed_set]
+    if rebuild:
+        pdfs_to_run = list(only_process_these)
+    else:
+        registry_path = os.path.join(output_dir, "04_processed_pdfs.txt")
+        processed_set = set(load_processed_pdfs(registry_path))
+        pdfs_to_run   = [p for p in only_process_these if os.path.basename(p) not in processed_set]
 
     if not pdfs_to_run:
         return "No new PDFs to process (lightweight).", [], [], 0

@@ -54,13 +54,21 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         epilog=USAGE_EXAMPLES,
     )
 
+    from visual_parser import __version__
+    p.add_argument(
+        "--version", "-V",
+        action="version",
+        version=f"visual-parser {__version__}",
+    )
+
     # ---- Paths --------------------------------------------------------------
     io_group = p.add_argument_group("Paths")
     io_group.add_argument(
         "--input-dir", "-i",
-        required=True,
+        required=False,
         metavar="DIR",
-        help="Directory to scan for PDF files (searched recursively).",
+        help="Directory to scan for PDF files (searched recursively). "
+             "Required unless --list-models is given.",
     )
     io_group.add_argument(
         "--output-dir", "-o",
@@ -166,6 +174,17 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     # ---- Misc ---------------------------------------------------------------
     misc_group = p.add_argument_group("Miscellaneous")
     misc_group.add_argument(
+        "--list-models",
+        action="store_true",
+        help=(
+            "Print the live, currently-available vision models for gpt and/or "
+            "gemini (whichever of OPENAI_API_KEY / GEMINI_API_KEY is set in "
+            ".env), then exit -- no PDF processing. Replaces the static "
+            "example names shown in --vision-model's help text above, which "
+            "can go stale as providers add/retire models."
+        ),
+    )
+    misc_group.add_argument(
         "--rebuild",
         action="store_true",
         help=(
@@ -194,6 +213,55 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _print_available_models() -> int:
+    """--list-models: print the live vision-model catalog for whichever
+    provider(s) have a key configured, then exit. No PDF processing."""
+    import os as _os
+
+    from visual_parser import config as _config  # noqa: F401  (triggers _load_env() on import)
+    from visual_parser.model_catalog import list_gemini_models, list_openai_models
+    from visual_parser.openai_gateway import resolve_openai_connection
+
+    conn = resolve_openai_connection()
+    gemini_key = _os.getenv("GEMINI_API_KEY", "").strip()
+
+    if not conn["api_key"] and not gemini_key:
+        print(
+            "[ERROR] None of OPENAI_API_KEY, PORTKEY_API_KEY, or GEMINI_API_KEY "
+            "is set (checked ~/.config/visual-parser/.env, the current "
+            "directory's .env, and $VISUAL_PARSER_ENV_FILE). Set at least one "
+            "to list models.",
+            file=sys.stderr,
+        )
+        return 1
+
+    if conn["api_key"]:
+        via = " (via Portkey)" if conn["base_url"] else ""
+        print(f"gpt (OpenAI){via} -- live, currently available:")
+        models = list_openai_models(
+            conn["api_key"], base_url=conn["base_url"], model_prefix=conn["model_prefix"], force_refresh=True
+        )
+        if models:
+            for model_id in models:
+                print(f"  {model_id}")
+        else:
+            print("  (none found -- check the configured key is valid)")
+        print()
+
+    if gemini_key:
+        print("gemini (Google) -- live, currently available:")
+        models = list_gemini_models(gemini_key, force_refresh=True)
+        if models:
+            for model_id in models:
+                print(f"  {model_id}")
+        else:
+            print("  (none found -- check GEMINI_API_KEY is valid)")
+        print()
+
+    print("Pass one of the above to --vision-model (with the matching --vision-provider).")
+    return 0
+
+
 def main(argv=None) -> int:
     """
     Parse CLI arguments, build a :class:`~visual_parser.config.ParserConfig`,
@@ -203,6 +271,12 @@ def main(argv=None) -> int:
     """
     parser = _build_arg_parser()
     args   = parser.parse_args(argv)
+
+    if args.list_models:
+        return _print_available_models()
+
+    if not args.input_dir:
+        parser.error("--input-dir is required (unless --list-models is given).")
 
     # Default vision model per provider when not explicitly set
     if args.vision_model is None:

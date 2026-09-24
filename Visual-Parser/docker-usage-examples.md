@@ -1,6 +1,6 @@
 # visual-parser — Docker usage examples
 
-Image: `zev94/radiant-llm:visual-parser-latest` (pinned: `visual-parser-1.0.2`)
+Image: `zev94/radiant-llm:visual-parser-latest` (see the Docker Hub tag table in README.md for pinned-version tags)
 
 All examples assume:
 - A `.env` file with `OPENAI_API_KEY` and/or `GEMINI_API_KEY` in the directory where you run `docker`.
@@ -20,7 +20,7 @@ docker run --rm zev94/radiant-llm:visual-parser-latest --help
 
 ### Default (GPT-5.2, medium reasoning)
 
-No extra flags needed — defaults are `--vision-provider gpt`, `--vision-model gpt-5.2`, `--reasoning-effort medium`.
+No extra flags needed — defaults are `--vision-provider gpt`, `--vision-model gpt-5.4`, `--reasoning-effort medium`.
 
 ```bash
 docker run --rm --env-file .env \

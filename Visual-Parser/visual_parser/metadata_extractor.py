@@ -11,7 +11,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-import fitz  # PyMuPDF
+import pymupdf as fitz  # PyMuPDF -- "fitz" is the deprecated legacy import name
 
 from visual_parser.prompts import METADATA_PROMPT_TEMPLATE
 from visual_parser.vision_llm import call_vision_llm

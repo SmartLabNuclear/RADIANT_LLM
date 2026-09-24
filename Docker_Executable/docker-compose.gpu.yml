@@ -1,0 +1,38 @@
+# RADIANT-LLM — optional GPU override
+#
+# Adds NVIDIA GPU passthrough for the agent's PDF-parsing tool (Nougat) --
+# the container's torch install already targets CUDA (cu130); the only
+# thing missing without this file is the device actually being handed to
+# the container.
+#
+# Requires an NVIDIA GPU + a driver supporting CUDA 13.0+ (r580 or newer --
+# check with `nvidia-smi`). Confirmed working with Docker Desktop's WSL2
+# backend with no extra nvidia-container-toolkit install.
+#
+# Usage: run .\start.ps1 (Windows) or ./start.sh (Linux/macOS) instead of
+# `docker compose up -d` -- it detects whether this machine has an NVIDIA
+# GPU (via `nvidia-smi`) and applies this file automatically only when
+# appropriate. No flags to remember either way.
+#
+# To apply it manually instead (from this folder, in addition to the normal
+# docker-compose.yml):
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+#
+# Omit -f docker-compose.gpu.yml (just `docker compose up -d` as usual) on a
+# machine with no GPU -- the base docker-compose.yml alone is untouched by
+# this file and always works. Do NOT rename this into docker-compose.yml
+# itself or reference it alone: Compose's GPU device reservation is a hard
+# requirement, not a graceful fallback -- applied without a GPU present, the
+# container fails to start entirely rather than falling back to CPU. This is
+# exactly why start.ps1/start.sh check first instead of always applying this
+# file.
+
+services:
+  radiant-llm:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

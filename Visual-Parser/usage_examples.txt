@@ -1,0 +1,43 @@
+# Default: gpt-5.4 + medium reasoning (no flag needed)
+python visual-parser.py --input-dir "...\Results"
+
+# Max reasoning for complex figures
+python visual-parser.py --input-dir "...\Results" --reasoning-effort xhigh
+
+# GPT-5.3 chat-latest (accepted, without reasoning_effort handling)
+python visual-parser.py --input-dir "...\Results" --vision-model gpt-5.3-chat-latest
+
+# GPT-5.5 (newer than the default, if you want to try it)
+python visual-parser.py --input-dir "...\Results" --vision-model gpt-5.5
+
+# Gemini 3 (latest)
+python visual-parser.py --input-dir "...\Results" --vision-provider gemini
+
+# Gemini 2.5 Flash (faster/cheaper Gemini option)
+python visual-parser.py --input-dir "...\Results" --vision-provider gemini --vision-model gemini-2.5-flash
+
+# Older GPT-4o if you want to stay on the previous generation
+python visual-parser.py --input-dir "...\Results" --vision-model gpt-4o
+
+# Other Tnuable params 
+# Minimal (only input-dir required)
+python visual-parser.py --input-dir "C:\path\to\chapter2"
+
+# With output dir and lightweight text
+python visual-parser.py -i "C:\path\to\pdfs" -o "C:\path\to\out" --text-mode lightweight
+
+# Gemini, 1 metadata page, 8 workers
+python visual-parser.py --input-dir "C:\path\to\pdfs" --max-workers 6
+python visual-parser.py --input-dir "C:\path\to\pdfs" --vision-provider gemini --metadata-pages 1 --max-workers 8
+
+# Full rebuild with high reasoning and verbose logs
+python visual-parser.py --input-dir "C:\path\to\pdfs" --rebuild --reasoning-effort high --log-level INFO
+
+# See the live, currently-available vision models for your configured provider(s) (no PDF processing)
+python visual-parser.py --list-models
+
+# Force routing through Portkey for one run, even if OPENAI_API_KEY is also set
+# (PowerShell)
+$env:VISUAL_PARSER_FORCE_PORTKEY="true"; python visual-parser.py --input-dir "C:\path\to\pdfs" --vision-model gpt-5.6
+# (bash)
+VISUAL_PARSER_FORCE_PORTKEY=true python visual-parser.py --input-dir "C:\path\to\pdfs" --vision-model gpt-5.6

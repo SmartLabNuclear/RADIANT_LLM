@@ -1,14 +1,14 @@
 [build-system]
-requires = ["setuptools>=61", "wheel"]
+requires = ["setuptools>=77.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "visual-parser"
-version = "2.0.4"
+version = "2.1.0"
 description = "Standalone Visual-RAG PDF Parser - text extraction and Vision-LLM figure descriptions to JSONL"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "Apache-2.0" }
+license = "Apache-2.0"
 # PEP 621: name+email in one entry -> Author-email only (Author stays empty on PyPI).
 # Split entries so PyPI/pip show both Author and Author-email.
 authors = [
@@ -26,7 +26,6 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Text Processing :: Markup",
@@ -34,24 +33,24 @@ classifiers = [
 ]
 
 dependencies = [
-    "PyMuPDF==1.24.7",
-    "Pillow==11.1.0",
-    "torch==2.7.0",
-    "transformers==4.45.2",
-    "huggingface-hub==0.36.0",
-    "langchain-community==0.3.3",
-    "langchain==0.3.13",
-    "langchain-text-splitters==0.3.4",
-    "openai==1.78.1",
-    "google-generativeai==0.8.5",
-    "python-dotenv==1.1.0",
-    "tqdm==4.67.1",
-    "nltk>=3.8",
-    "python-Levenshtein>=0.20",
+    "PyMuPDF>=1.23.0",                 # fitz -- rasterisation & native text layer
+    "Pillow>=10.0.0",                  # image handling
+    "torch>=2.1.0",                    # CPU build is fine; GPU users install their own wheel -- see README's CUDA note
+    "transformers>=4.38.0",            # AutoProcessor + VisionEncoderDecoderModel
+    "huggingface-hub>=0.36.0",         # model download utilities (used by transformers/nougat)
+    "langchain-community>=0.0.20",     # PyPDFLoader fallback
+    "langchain>=0.1.0",
+    "langchain-text-splitters>=0.0.1", # RecursiveCharacterTextSplitter (split out from langchain in v0.2+)
+    "openai>=1.14.0",
+    "google-generativeai>=0.5.0",
+    "python-dotenv>=1.0.0",
+    "tqdm>=4.66.0",
+    "nltk>=3.8",                       # required by NougatTokenizerFast
+    "python-Levenshtein>=0.20",        # required by NougatTokenizerFast
 ]
 
 [project.optional-dependencies]
-ocr = ["pytesseract==0.3.13"]
+ocr = ["pytesseract>=0.3.10"]  # optional equation OCR, requires the Tesseract system binary
 dev = ["pytest", "ruff", "mypy"]
 
 [project.urls]

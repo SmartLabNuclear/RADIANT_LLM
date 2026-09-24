@@ -29,7 +29,7 @@ import re
 from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
-import fitz  # PyMuPDF
+import pymupdf as fitz  # PyMuPDF -- "fitz" is the deprecated legacy import name
 
 from visual_parser.jsonl_writer import append_to_jsonl, make_document_id
 from visual_parser.prompts import FIGURE_PROMPT

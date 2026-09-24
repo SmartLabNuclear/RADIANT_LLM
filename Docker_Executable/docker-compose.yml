@@ -1,13 +1,26 @@
 # RADIANT-LLM — Docker Compose deployment
 #
 # Usage (from this folder):
-#   docker compose up -d              start in background
+#   .\start.ps1 (Windows) / ./start.sh (Linux/macOS)   start in background,
+#                                         auto-detects GPU (see GPU note
+#                                         below) -- recommended
+#   docker compose up -d              start in background, CPU-only always
 #   docker compose down               stop and remove container
 #   docker compose logs -f            follow live logs
 #   docker compose pull               pull latest image from Docker Hub
 #   docker compose up -d --pull always   pull + restart in one step
 #
 # Browser: http://localhost:8060
+#
+# GPU note:
+#   The agent's PDF-parsing tool (Nougat) uses an NVIDIA GPU automatically when
+#   one is available. `.\start.ps1` / `./start.sh` detect this for you (via
+#   `nvidia-smi`) and apply docker-compose.gpu.yml only when appropriate --
+#   no flags to remember, works the same on a machine with or without a GPU.
+#   To do it manually instead (see docker-compose.gpu.yml for details):
+#     docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+#   Leave it out (plain `docker compose up -d`, as above) on a machine with no
+#   GPU -- this base file alone is unaffected either way.
 #
 # Image tags — zev94/radiant-llm on Docker Hub:
 #   :2.0         the original fixed build referenced by the RADIANT-LLM paper. Frozen.

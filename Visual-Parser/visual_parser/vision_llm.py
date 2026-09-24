@@ -26,6 +26,7 @@ import base64
 import io
 import logging
 import os
+import re
 from typing import List, Literal, Optional
 
 from PIL import Image
@@ -35,12 +36,31 @@ logger = logging.getLogger(__name__)
 DetailLevel = Literal["low", "high", "auto"]
 ReasoningEffort = Literal["minimal", "none", "low", "medium", "high", "xhigh"]
 
-# GPT-family models with explicit reasoning_effort support.
+# GPT-family models with explicit reasoning_effort support -- kept for the
+# per-model *allowed values* lookup below, not for detecting whether a model
+# is reasoning-capable at all (see _GPT_REASONING_FAMILY_PREFIX for that).
 _GPT_REASONING_MODELS = {"gpt-5", "gpt-5.1", "gpt-5.2", "gpt-5.4", "gpt-5.5"}
 
 # GPT-family models accepted by the app but not documented here with
 # reasoning_effort support.
 _GPT_NO_REASONING_MODELS = {"gpt-5.3-chat-latest"}
+
+# Whole-family fallback: any gpt-5-and-up model not ending in "-chat-latest"
+# is treated as reasoning-capable (no temperature param sent), the same
+# "family, not individual ids" principle model_catalog.py's o-series prefix
+# already uses. Without this, a real, live-listed model like gpt-5.6 (not in
+# _GPT_REASONING_MODELS above, since that set predates its release) silently
+# fell through to the "older models" branch and got sent temperature=0 --
+# confirmed via a live 400: "temperature does not support 0 with this model.
+# Only the default (1) value is supported."
+_GPT_REASONING_FAMILY_PREFIX = re.compile(r"^gpt-([5-9]|\d{2,})(\.\d+)?(-|$)")
+
+# Default reasoning_effort values offered to a reasoning-capable model this
+# wrapper doesn't have an explicit entry for below, rather than silently
+# dropping the parameter for every new release -- the union of every known
+# generation's allowed set; "medium" (the CLI's own default) is valid in all
+# of them, including gpt-5's narrower one.
+_GPT_REASONING_EFFORT_DEFAULT = {"none", "low", "medium", "high", "xhigh"}
 
 _GPT_REASONING_EFFORT_OPTIONS = {
     "gpt-5": {"minimal", "low", "medium", "high"},
@@ -57,12 +77,16 @@ LATEST_GEMINI_MODEL = "gemini-3-pro-preview"
 
 def _supports_reasoning_effort(model: str) -> bool:
     """Return True when *model* supports reasoning_effort in this wrapper."""
-    return model.lower() in _GPT_REASONING_MODELS
+    lowered = model.lower()
+    if lowered in _GPT_NO_REASONING_MODELS or lowered.endswith("-chat-latest"):
+        return False
+    return lowered in _GPT_REASONING_MODELS or bool(_GPT_REASONING_FAMILY_PREFIX.match(lowered))
 
 
 def _is_gpt5_chat_latest(model: str) -> bool:
     """Return True for accepted GPT-5-era models without reasoning_effort support."""
-    return model.lower() in _GPT_NO_REASONING_MODELS
+    lowered = model.lower()
+    return lowered in _GPT_NO_REASONING_MODELS or lowered.endswith("-chat-latest")
 
 
 def _normalize_reasoning_effort(
@@ -77,17 +101,21 @@ def _normalize_reasoning_effort(
 
     normalized_model = model.lower()
     normalized_effort = reasoning_effort.lower()
-    allowed = _GPT_REASONING_EFFORT_OPTIONS.get(normalized_model, set())
+    allowed = _GPT_REASONING_EFFORT_OPTIONS.get(normalized_model)
+    if allowed is None:
+        # Unrecognized but reasoning-capable per _supports_reasoning_effort()
+        # (e.g. a newer release like gpt-5.6) -- fall back to the broadest
+        # known-valid set instead of silently dropping the parameter.
+        allowed = _GPT_REASONING_EFFORT_DEFAULT
     if normalized_effort in allowed:
         return normalized_effort
 
-    if allowed:
-        logger.warning(
-            "Ignoring unsupported reasoning_effort=%s for model=%s. Allowed: %s",
-            reasoning_effort,
-            model,
-            ", ".join(sorted(allowed)),
-        )
+    logger.warning(
+        "Ignoring unsupported reasoning_effort=%s for model=%s. Allowed: %s",
+        reasoning_effort,
+        model,
+        ", ".join(sorted(allowed)),
+    )
     return None
 
 
@@ -131,7 +159,12 @@ def call_vision_llm_gpt(
     if not api_key:
         raise RuntimeError("OpenAI API key is not set.")
 
-    client = OpenAI(api_key=api_key)
+    # api_key already carries whichever key config.py resolved (OPENAI_API_KEY
+    # or Portkey's) -- resolve_openai_connection() here is only to pick up the
+    # matching base_url/model_prefix, since it's a pure/cheap env-var read.
+    from visual_parser.openai_gateway import resolve_openai_connection, prefixed_model
+    _conn = resolve_openai_connection()
+    client = OpenAI(api_key=api_key, base_url=_conn["base_url"])
 
     # Build the multimodal message content
     content = [{"type": "text", "text": prompt}]
@@ -145,9 +178,11 @@ def call_vision_llm_gpt(
             },
         })
 
-    # Build API call kwargs
+    # Build API call kwargs. model_prefix (if any) is applied only here, not
+    # to `model` itself -- every capability check above/below must keep
+    # matching on the bare model name.
     call_kwargs: dict = {
-        "model":    model,
+        "model":    prefixed_model(_conn, model),
         "messages": [{"role": "user", "content": content}],
     }
 
