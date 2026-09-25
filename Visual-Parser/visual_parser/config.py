@@ -95,7 +95,7 @@ class ParserConfig:
     # stored here, since they depend on the SAME env vars this key does)
     openai_api_key: str = field(default_factory=lambda: resolve_openai_connection()["api_key"])
     gpt_vision_model: str = "gpt-5.4"
-    """Default GPT vision model. Also accepts: gpt-5.5, gpt-5.3-chat-latest, gpt-5.2, gpt-5.1, gpt-5, gpt-4o, gpt-4.1"""
+    """Default GPT vision model. Also accepts: gpt-6-luna, gpt-6-sol, gpt-5.5, gpt-5.2, gpt-5.1, gpt-5, gpt-4o, gpt-4.1"""
 
     # GPT-5.x reasoning effort: none | low | medium | high | xhigh
     # Older gpt-5 uses minimal | low | medium | high.
@@ -103,8 +103,8 @@ class ParserConfig:
 
     # Google Gemini
     gemini_api_key: str = field(default_factory=lambda: os.getenv("GEMINI_API_KEY", ""))
-    gemini_vision_model: str = "gemini-3-pro-preview"
-    """Latest Gemini vision model.  Also accepts: gemini-2.5-flash, gemini-1.5-pro"""
+    gemini_vision_model: str = "gemini-3.8-flash"
+    """Latest Gemini vision model.  Also accepts: gemini-3.1-pro-preview, gemini-2.5-flash"""
 
     # --- Vision detail -------------------------------------------------------
     vision_detail: Literal["low", "high", "auto"] = "low"
@@ -154,7 +154,7 @@ class ParserConfig:
             gpt_vision_model     = os.getenv("VISUAL_PARSER_GPT_VISION_MODEL", "gpt-5.4"),
             gpt_reasoning_effort = os.getenv("VISUAL_PARSER_GPT_REASONING_EFFORT", "medium"),
             gemini_api_key       = os.getenv("GEMINI_API_KEY", ""),
-            gemini_vision_model  = os.getenv("VISUAL_PARSER_GEMINI_VISION_MODEL", "gemini-3-pro-preview"),
+            gemini_vision_model  = os.getenv("VISUAL_PARSER_GEMINI_VISION_MODEL", "gemini-3.8-flash"),
             vision_detail        = os.getenv("VISUAL_PARSER_VISION_DETAIL", "low"),          # type: ignore[arg-type]
             metadata_pages       = int(os.getenv("VISUAL_PARSER_METADATA_PAGES", "2")),
             max_workers          = int(os.getenv("VISUAL_PARSER_MAX_WORKERS", "4")),

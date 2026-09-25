@@ -24,7 +24,7 @@ python visual-parser.py --input-dir ./my_pdfs
 python visual-parser.py --input-dir ./my_pdfs \\
     --text-mode lightweight \\
     --vision-provider gemini \\
-    --vision-model gemini-1.5-pro
+    --vision-model gemini-3.1-pro-preview
 
 # Write outputs to a separate directory
 python visual-parser.py --input-dir ./my_pdfs --output-dir ./output_kb
@@ -126,8 +126,8 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         metavar="MODEL_NAME",
         help=(
             "Vision model name. Omit to use the latest for each provider:\n"
-            "  gpt    → gpt-5.4            (also: gpt-5.5, gpt-5.3-chat-latest, gpt-5.2, gpt-5.1, gpt-5, gpt-4o, gpt-4.1)\n"
-            "  gemini → gemini-3-pro-preview (also: gemini-2.5-flash, gemini-1.5-pro)"
+            "  gpt    → gpt-5.4            (also: gpt-6-luna, gpt-6-sol, gpt-5.5, gpt-5.2, gpt-5.1, gpt-5, gpt-4o, gpt-4.1)\n"
+            "  gemini → gemini-3.8-flash   (also: gemini-3.1-pro-preview, gemini-2.5-flash)"
         ),
     )
     vision_group.add_argument(
@@ -281,7 +281,7 @@ def main(argv=None) -> int:
     # Default vision model per provider when not explicitly set
     if args.vision_model is None:
         args.vision_model = (
-            "gpt-5.4" if args.vision_provider == "gpt" else "gemini-3-pro-preview"
+            "gpt-5.4" if args.vision_provider == "gpt" else "gemini-3.8-flash"
         )
 
     from visual_parser.config import ParserConfig
@@ -295,7 +295,7 @@ def main(argv=None) -> int:
         chunk_overlap         = args.chunk_overlap,
         vision_provider       = args.vision_provider,
         gpt_vision_model      = args.vision_model if args.vision_provider == "gpt"    else "gpt-5.4",
-        gemini_vision_model   = args.vision_model if args.vision_provider == "gemini" else "gemini-3-pro-preview",
+        gemini_vision_model   = args.vision_model if args.vision_provider == "gemini" else "gemini-3.8-flash",
         gpt_reasoning_effort  = args.reasoning_effort,
         vision_detail         = args.vision_detail,
         metadata_pages        = args.metadata_pages,

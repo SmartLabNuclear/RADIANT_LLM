@@ -7,17 +7,17 @@ When the user picks provider "gpt" or "gemini" without specifying a model,
 the pipeline defaults to the most capable current model for each provider:
 
     gpt    -> gpt-5.4
-             (also accepts: gpt-5.5, gpt-5.3-chat-latest, gpt-5.2, gpt-5.1,
-              gpt-5, gpt-4o, gpt-4.1)
-    gemini → gemini-3-pro-preview
-             (also accepts: gemini-2.5-flash, gemini-1.5-pro)
+             (also accepts: gpt-6-luna, gpt-6-sol, gpt-5.5,
+              gpt-5.2, gpt-5.1, gpt-5, gpt-4o, gpt-4.1)
+    gemini → gemini-3.8-flash
+             (also accepts: gemini-3.1-pro-preview, gemini-2.5-flash)
 
 GPT-5.x models
 --------------
 GPT-5 reasoning models support a ``reasoning_effort`` parameter instead of
 temperature. This wrapper detects those models and adds the parameter
-automatically. ``gpt-5.3-chat-latest`` is accepted, but follows the non-
-reasoning path used by the main RADIANT-LLM app.
+automatically. Any model name ending in ``-chat-latest`` is accepted but
+follows the non-reasoning path instead, matching the main RADIANT-LLM app.
 """
 
 from __future__ import annotations
@@ -40,10 +40,6 @@ ReasoningEffort = Literal["minimal", "none", "low", "medium", "high", "xhigh"]
 # per-model *allowed values* lookup below, not for detecting whether a model
 # is reasoning-capable at all (see _GPT_REASONING_FAMILY_PREFIX for that).
 _GPT_REASONING_MODELS = {"gpt-5", "gpt-5.1", "gpt-5.2", "gpt-5.4", "gpt-5.5"}
-
-# GPT-family models accepted by the app but not documented here with
-# reasoning_effort support.
-_GPT_NO_REASONING_MODELS = {"gpt-5.3-chat-latest"}
 
 # Whole-family fallback: any gpt-5-and-up model not ending in "-chat-latest"
 # is treated as reasoning-capable (no temperature param sent), the same
@@ -72,21 +68,20 @@ _GPT_REASONING_EFFORT_OPTIONS = {
 
 # Latest default model per provider
 LATEST_GPT_MODEL    = "gpt-5.4"
-LATEST_GEMINI_MODEL = "gemini-3-pro-preview"
+LATEST_GEMINI_MODEL = "gemini-3.8-flash"
 
 
 def _supports_reasoning_effort(model: str) -> bool:
     """Return True when *model* supports reasoning_effort in this wrapper."""
     lowered = model.lower()
-    if lowered in _GPT_NO_REASONING_MODELS or lowered.endswith("-chat-latest"):
+    if lowered.endswith("-chat-latest"):
         return False
     return lowered in _GPT_REASONING_MODELS or bool(_GPT_REASONING_FAMILY_PREFIX.match(lowered))
 
 
 def _is_gpt5_chat_latest(model: str) -> bool:
     """Return True for accepted GPT-5-era models without reasoning_effort support."""
-    lowered = model.lower()
-    return lowered in _GPT_NO_REASONING_MODELS or lowered.endswith("-chat-latest")
+    return model.lower().endswith("-chat-latest")
 
 
 def _normalize_reasoning_effort(
@@ -135,8 +130,8 @@ def call_vision_llm_gpt(
     Send *images* (PNG bytes) and *prompt* to an OpenAI vision model.
 
     For supported GPT-5 reasoning models, the ``reasoning_effort`` parameter
-    is passed to the API instead of temperature. ``gpt-5.3-chat-latest`` is
-    accepted without ``reasoning_effort``.
+    is passed to the API instead of temperature. Any model name ending in
+    ``-chat-latest`` is accepted without ``reasoning_effort``.
 
     Args:
         images:           List of raw PNG byte strings.
@@ -145,8 +140,8 @@ def call_vision_llm_gpt(
         model:            Vision-capable model name.
         detail:           Image resolution hint ('low', 'high', or 'auto').
         reasoning_effort: Reasoning depth for supported GPT-5.x models.
-                          Ignored for gpt-5.3-chat-latest and older models
-                          such as gpt-4o and gpt-4.1.
+                          Ignored for models ending in -chat-latest and
+                          older models such as gpt-4o and gpt-4.1.
 
     Returns:
         Model response as a plain string.
@@ -193,7 +188,7 @@ def call_vision_llm_gpt(
             call_kwargs["reasoning_effort"] = normalized_effort
         logger.info("[GPT-5 reasoning] Using model=%s reasoning_effort=%s", model, normalized_effort)
     elif _is_gpt5_chat_latest(model):
-        # Keep parity with the main RADIANT-LLM app for gpt-5.3-chat-latest.
+        # Keep parity with the main RADIANT-LLM app for "-chat-latest" models.
         call_kwargs["temperature"] = 1.0
         logger.info("[GPT-5 chat-latest] Using model=%s temperature=1.0", model)
     else:

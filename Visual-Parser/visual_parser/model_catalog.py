@@ -159,7 +159,7 @@ def list_gemini_models(api_key: Optional[str], force_refresh: bool = False) -> D
 
     Unlike AutoSAM/RADIANT-LLM's chat-agent catalog, this does NOT restrict to
     gemini-3.x and up -- visual-parser's own documented --vision-model range
-    already includes gemini-2.5-flash and gemini-1.5-pro as valid choices.
+    already includes gemini-2.5-flash and gemini-3.1-pro-preview as valid choices.
     """
     if not force_refresh and _gemini_cache.models and (
         time.time() - _gemini_cache.fetched_at < _CATALOG_TTL_SECONDS

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "visual-parser"
-version = "2.1.0"
+version = "2.1.1"
 description = "Standalone Visual-RAG PDF Parser - text extraction and Vision-LLM figure descriptions to JSONL"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -64,6 +64,12 @@ visual-parser = "visual_parser.cli_main:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["visual_parser*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: requires a live OPENAI_API_KEY/GEMINI_API_KEY and network access; skipped by default",
+]
 
 [tool.ruff]
 line-length = 100
