@@ -5,7 +5,7 @@
 ![LangChain](https://img.shields.io/badge/LangChain-0.1%2B-1C3C3C.svg)
 ![CUDA](https://img.shields.io/badge/CUDA-optional-76B900.svg)
 
-`visual-parser` converts PDFs into a multi-modal JSONL knowledge base (text chunks, figure descriptions, metadata). It was extracted from [RADIANT-LLM](https://github.com/SmartLabNuclear/RADIANT_LLM) as a standalone PDF-ingestion tool, independent of any chatbot.
+`visual-parser` converts PDFs (and standalone images alongside them) into a multi-modal JSONL knowledge base (text chunks, figure descriptions, standalone image descriptions, metadata). It was extracted from [RADIANT-LLM](https://github.com/SmartLabNuclear/RADIANT_LLM) as a standalone PDF-ingestion tool, independent of any chatbot.
 
 1) Run `visual-parser` on curated PDFs to generate JSONL KB files.
 2) Point any downstream RAG system at the generated KB — RADIANT-LLM, AutoSAM, and AutoFLUKA all consume the identical JSONL/registry format, so the same KB works with any of them without re-parsing.
@@ -27,10 +27,11 @@
 
 By default, the pipeline writes:
 - `01_chunks_kb.jsonl`: chunked text extracted from PDFs (Nougat by default).
-- `02_visuals_kb.jsonl`: figure/page visual descriptions (Vision LLM).
+- `02_visuals_kb.jsonl`: figure/page visual descriptions (Vision LLM), one row per figure found in a PDF.
 - `03_metadata_kb.jsonl`: document metadata rows (title/author/etc.).
+- `image_descriptions.jsonl`: one holistic description per **standalone image** file found alongside your PDFs in `--input-dir` (not a PDF's own figures) — auto-detected by extension, no separate flag needed; disable with `--skip-images`.
 
-Alongside the KB, the pipeline also writes two bookkeeping files: `04_processed_pdfs.txt` (tracks which PDFs have already been processed, so re-runs skip them unless `--rebuild`) and `05_pipeline.log` (run log at the verbosity set by `--log-level`, default `ERROR`).
+Alongside the KB, the pipeline also writes bookkeeping files: `04_processed_pdfs.txt` / `parsed_images.txt` (track which PDFs/images have already been processed, so re-runs skip them unless `--rebuild` or `--redo NAME`) and `05_pipeline.log` (run log at the verbosity set by `--log-level`, default `ERROR`).
 
 ## API Keys (.env)
 
@@ -228,8 +229,10 @@ Vision LLM:
 
 Performance / misc:
 - `--max-workers 4`
-- `--rebuild` (reprocess everything; ignore `04_processed_pdfs.txt`)
+- `--rebuild` (reprocess everything; ignore `04_processed_pdfs.txt`/`parsed_images.txt`)
+- `--redo NAME` (surgically clear one PDF/image's rows from every KB file + both registries, so it's reprocessed fresh on the next run — a targeted alternative to `--rebuild`)
 - `--skip-text` (skip text extraction and resume only the vision steps; use after an interrupted run)
+- `--skip-images` (don't process standalone images in `--input-dir`, PDFs only)
 - `--list-models` — print the live, currently-available vision models for whichever provider(s) you have a key configured for, then exit (no PDF processing). Reflects Portkey's catalog too when that's active.
 - `--version` / `-V`
 - `--log-level DEBUG|INFO|WARNING|ERROR` (default: `ERROR`)
