@@ -69,7 +69,6 @@ def nougat_extract_pdfs(
     chunk_size: int = 500,
     chunk_overlap: int = 100,
     max_workers: int = 4,
-    rebuild: bool = False,
 ) -> Tuple[str, List[str], List[str], int]:
     """
     Extract text from each PDF in *only_process_these* using the Nougat model,
@@ -84,15 +83,12 @@ def nougat_extract_pdfs(
         chunk_size:         Characters per chunk.
         chunk_overlap:      Overlap between adjacent chunks.
         max_workers:        Thread-pool size for parallel PDF processing.
-        rebuild:            When True, reprocess every PDF in
-                             *only_process_these* even if its basename is
-                             already in the 04_processed_pdfs.txt registry --
-                             mirrors find_new_pdfs()'s own rebuild semantics,
-                             which this function otherwise silently
-                             overrides (only_process_these already came from
-                             a rebuild-aware find_new_pdfs() call upstream,
-                             but this function used to re-apply its own,
-                             rebuild-blind registry filter on top of that).
+
+    Always resumes against the 04_processed_pdfs.txt registry -- callers
+    that want a PDF reprocessed must first clear its existing chunks and
+    registry entry (see kb_redo.redo_entries()), then pass it in here as if
+    new; this function has no bypass of its own, so there is no path to
+    producing a duplicate row.
 
     Returns:
         (summary_message, successful_basenames, failed_basenames, chunks_written_this_run)
@@ -101,12 +97,9 @@ def nougat_extract_pdfs(
 
     from visual_parser.nougat_engine import RasterizePaper, StoppingCriteriaScores
 
-    if rebuild:
-        pdfs_to_run = list(only_process_these)
-    else:
-        registry_path = os.path.join(output_dir, "04_processed_pdfs.txt")
-        processed_set = set(load_processed_pdfs(registry_path))
-        pdfs_to_run   = [p for p in only_process_these if os.path.basename(p) not in processed_set]
+    registry_path = os.path.join(output_dir, "04_processed_pdfs.txt")
+    processed_set = set(load_processed_pdfs(registry_path))
+    pdfs_to_run   = [p for p in only_process_these if os.path.basename(p) not in processed_set]
 
     if not pdfs_to_run:
         return "No new PDFs to process (Nougat).", [], [], 0
@@ -264,7 +257,6 @@ def lightweight_extract_pdfs(
     chunk_size: int = 500,
     chunk_overlap: int = 100,
     max_workers: int = 4,
-    rebuild: bool = False,
 ) -> Tuple[str, List[str], List[str], int]:
     """
     Extract text from each PDF in *only_process_these* using PyMuPDF's native
@@ -279,23 +271,18 @@ def lightweight_extract_pdfs(
         chunk_size:         Characters per chunk.
         chunk_overlap:      Overlap between adjacent chunks.
         max_workers:        Thread-pool size for parallel PDF processing.
-        rebuild:            When True, reprocess every PDF in
-                             *only_process_these* regardless of the
-                             04_processed_pdfs.txt registry. See
-                             nougat_extract_pdfs()'s docstring for why this
-                             exists as its own parameter here too.
+
+    Always resumes against the 04_processed_pdfs.txt registry -- see
+    nougat_extract_pdfs()'s docstring for how to force a genuine redo.
 
     Returns:
         (summary_message, successful_basenames, failed_basenames, chunks_written_this_run)
     """
     from io import BytesIO
 
-    if rebuild:
-        pdfs_to_run = list(only_process_these)
-    else:
-        registry_path = os.path.join(output_dir, "04_processed_pdfs.txt")
-        processed_set = set(load_processed_pdfs(registry_path))
-        pdfs_to_run   = [p for p in only_process_these if os.path.basename(p) not in processed_set]
+    registry_path = os.path.join(output_dir, "04_processed_pdfs.txt")
+    processed_set = set(load_processed_pdfs(registry_path))
+    pdfs_to_run   = [p for p in only_process_these if os.path.basename(p) not in processed_set]
 
     if not pdfs_to_run:
         return "No new PDFs to process (lightweight).", [], [], 0

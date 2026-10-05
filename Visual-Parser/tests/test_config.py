@@ -36,6 +36,29 @@ def test_from_env_reads_overrides(monkeypatch):
     assert config.vision_context_pages == 2
 
 
+def test_skip_images_defaults_to_false():
+    assert ParserConfig(input_dir=".").skip_images is False
+
+
+def test_from_env_reads_skip_images(monkeypatch):
+    monkeypatch.setenv("VISUAL_PARSER_SKIP_IMAGES", "true")
+    assert ParserConfig.from_env().skip_images is True
+
+
+def test_redo_names_defaults_to_empty_list():
+    assert ParserConfig(input_dir=".").redo_names == []
+
+
+def test_from_env_redo_names_defaults_to_empty_list(monkeypatch):
+    monkeypatch.delenv("VISUAL_PARSER_REDO_NAMES", raising=False)
+    assert ParserConfig.from_env().redo_names == []
+
+
+def test_from_env_reads_redo_names_comma_separated(monkeypatch):
+    monkeypatch.setenv("VISUAL_PARSER_REDO_NAMES", "doc1.pdf, diagram2.png ,doc3.pdf")
+    assert ParserConfig.from_env().redo_names == ["doc1.pdf", "diagram2.png", "doc3.pdf"]
+
+
 def test_vision_context_pages_defaults_to_zero(monkeypatch):
     monkeypatch.delenv("VISUAL_PARSER_VISION_CONTEXT_PAGES", raising=False)
     assert ParserConfig.from_env().vision_context_pages == 0

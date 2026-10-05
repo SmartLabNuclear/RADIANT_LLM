@@ -42,6 +42,9 @@ FIGURE_PROMPT: str = (
     "   - Describe shapes, layout, and components.\n"
     "   - List meaningful text labels found *inside* the figure VERBATIM.\n"
     "   - For schematics: describe connectivity (e.g. 'Pump discharges to Heat Exchanger').\n"
+    "   - For tables: transcribe EVERY cell's contents VERBATIM and IN FULL, preserving "
+    "row/column association (e.g. 'Row \"Ext. loop A\": Outcome = Pass'). Do not summarise "
+    "or paraphrase table contents.\n"
 
     "3. **Dimensions & Data (Quantitative)**:\n"
     "   - **Schematics**: Extract all physical dimension lines, radii, diameters, lengths, "
@@ -111,6 +114,81 @@ def build_figure_prompt_with_context(base_prompt: str, target_image_index: int, 
         "to a context page -- that page has its own separate call covering it.\n\n"
     )
     return preamble + base_prompt
+
+
+# ---------------------------------------------------------------------------
+# Standalone-image description prompt
+# ---------------------------------------------------------------------------
+
+IMAGE_DESCRIPTION_PROMPT: str = (
+    "You are a specialised Scientific Vision Analyst. You are viewing a single "
+    "standalone image with NO external document text supplied alongside it. "
+    "This image could be almost anything: a diagram, chart, schematic, CAD "
+    "drawing, P&ID, plot, photograph, a slide (e.g. a PowerPoint slide saved as "
+    "an image) containing both text and a figure, or a region cropped from a "
+    "larger page. Do not assume its origin, and do not assume it is text-free -- "
+    "many such images contain real body text (titles, bullet points, captions, "
+    "title-block notes, tables, revision stamps) in addition to or instead of a "
+    "diagram. Your goal is to extract high-fidelity structured data for a "
+    "Retrieval-Augmented Generation (RAG) system. Your output must be precise, "
+    "quantitative, and strictly follow the structure defined below.\n\n"
+
+    "**TRUST THE PIXELS**: Transcribe all visible labels, numbers, units, and "
+    "annotations VERBATIM, exactly as shown in the image.\n\n"
+
+    "Generate ONE description for this image using STRICTLY the following six "
+    "headings.\n\n"
+
+    "1. **Subject**: A concise title or classification "
+    "(e.g. 'Vertical Parabolic Gate Schematic', 'PWR Primary Loop P&ID', "
+    "'Decay Heat vs Time Plot', 'Slide: Reactor Safety Overview').\n\n"
+
+    "2. **Verbatim Text Content**: If the image contains any text beyond short "
+    "diagram labels -- slide titles, bullet points, paragraphs, captions, table "
+    "or title-block text, notes, revision stamps -- transcribe it VERBATIM and "
+    "IN FULL, preserving reading order. This text must be captured, not "
+    "summarised. If the image has no such text (a pure diagram, chart, or "
+    "photograph), state 'No additional text content.'\n\n"
+
+    "3. **Geometry & Labels**:\n"
+    "   - Describe shapes, layout, and components of any diagram/drawing/chart "
+    "present.\n"
+    "   - List short text labels and tags found INSIDE the diagram itself "
+    "VERBATIM (distinct from the body text already captured in heading 2).\n"
+    "   - For schematics/CAD/P&ID: describe connectivity (e.g. 'Pump discharges "
+    "to Heat Exchanger').\n"
+    "   - If the image is pure text with no diagram (e.g. a text-only slide), "
+    "state 'No diagram present.'\n\n"
+
+    "4. **Dimensions & Data (Quantitative)**:\n"
+    "   - Schematics/CAD/P&ID: extract all physical dimension lines, radii, "
+    "diameters, lengths, thicknesses, angles, tolerances, and part/revision "
+    "numbers explicitly labelled.\n"
+    "   - Plots/Charts: extract axis variables, units, numerical ranges; "
+    "identify peaks, minima, trends, discontinuities with quantitative "
+    "language.\n"
+    "   - If values are approximate, state this (e.g. '~', 'estimated from "
+    "plot').\n\n"
+
+    "5. **Context**: Summarise the apparent scientific, engineering, or "
+    "presentational purpose of this image, based on everything visible in it "
+    "(both the text from heading 2 and any diagram from headings 3-4) -- no "
+    "external document text is supplied to draw on.\n\n"
+
+    "6. **Discrepancy Check**: If the image contains BOTH text (heading 2) and "
+    "a diagram/chart (headings 3-4), check whether a claim made in the text "
+    "matches what the diagram actually shows (e.g. text says '5 units' but the "
+    "diagram is labelled '6') -- apply TRUST THE PIXELS and report the "
+    "discrepancy. Otherwise, note any purely internal inconsistency (mismatched "
+    "units, unlabeled axes, ambiguous legend entries). If none, state "
+    "'No discrepancies detected.'\n\n"
+
+    "**OUTPUT FORMAT**\n"
+    "Return a strictly valid JSON object (NOT a list):\n"
+    "{ \"description\": \"**Subject:** [Title]\\n**Verbatim Text Content:** [...]\\n"
+    "**Geometry & Labels:** [...]\\n**Dimensions & Data:** [...]\\n**Context:** [...]\\n"
+    "**Discrepancy Check:** [...]\" }"
+)
 
 
 # ---------------------------------------------------------------------------

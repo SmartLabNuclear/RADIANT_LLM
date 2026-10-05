@@ -2,12 +2,22 @@
 pipeline.py — The main Visual-RAG parsing orchestrator.
 
 Calls each stage in order:
-    0.   Detect new PDFs
+    -1.  Clear KB rows + registry entries for --redo names and/or (if
+         --rebuild) everything currently in --input-dir, via kb_redo.py --
+         BEFORE discovery, so cleared names are naturally reprocessed with
+         no duplicate rows.
+    0.   Detect new PDFs (and, separately, new standalone images)
     0.5  Extract per-document metadata (Vision LLM on front pages)
     1.   Extract and chunk text  (Nougat  OR  Lightweight, controlled by config)
     2.   Describe figures        (Vision LLM, page-by-page)
+         Describe standalone images (Vision LLM, one call per image)
     3.   Write metadata JSONL
-    4.   Mark PDFs as processed
+    4.   Mark PDFs/images as processed
+
+Standalone images are auto-detected by extension alongside PDFs in the same
+--input-dir (no --mode flag) and tracked/written independently via
+image_tracker.py/image_describer.py -- they don't go through text extraction
+at all, only the vision step.
 
 No vector store, no embeddings, no retrieval — pure JSONL generation.
 """
@@ -20,6 +30,8 @@ from typing import Dict, List, Optional
 
 from visual_parser.config import ParserConfig
 from visual_parser.figure_describer import describe_figures_for_new_pdfs
+from visual_parser.image_describer import describe_images
+from visual_parser.image_tracker import PROCESSED_IMAGES_REGISTRY, find_new_images
 from visual_parser.jsonl_writer import append_to_jsonl, make_document_id, read_jsonl
 from visual_parser.metadata_extractor import extract_pdf_metadata
 from visual_parser.pdf_tracker import (
@@ -117,6 +129,10 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                 "text_chunks_written":  int,
                 "figures_written":      int,
                 "metadata_written":     int,
+                "new_images_found":     int,
+                "images_written":       int,
+                "redone_basenames":     List[str],
+                "redo_names_not_found": List[str],
                 "processed_basenames":  List[str],
             }
     """
@@ -129,19 +145,71 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
     _setup_logging(config)
 
     summary = {
-        "new_pdfs_found":      0,
-        "text_chunks_written": 0,
-        "figures_written":     0,
-        "metadata_written":    0,
-        "processed_basenames": [],
-        "failed_basenames":    [],
-        "status":              "success",
+        "new_pdfs_found":       0,
+        "text_chunks_written":  0,
+        "figures_written":      0,
+        "metadata_written":     0,
+        "new_images_found":     0,
+        "images_written":       0,
+        "processed_basenames":  [],
+        "failed_basenames":     [],
+        "redone_basenames":     [],
+        "redo_names_not_found": [],
+        "status":               "success",
     }
 
-    # -----------------------------------------------------------------------
-    # Step 0 — Discover PDFs to process
-    # -----------------------------------------------------------------------
     registry_path = os.path.join(output_dir, PROCESSED_REGISTRY)
+    images_registry_path = os.path.join(output_dir, PROCESSED_IMAGES_REGISTRY)
+
+    # -----------------------------------------------------------------------
+    # Step -1 — Clear KB rows + registry entries for --redo names and/or (if
+    # --rebuild) every PDF/image currently in input_dir, BEFORE discovery --
+    # so the normal, registry-aware discovery below naturally picks cleared
+    # names back up as new. This is what makes --rebuild/--redo produce zero
+    # duplicate rows: old data is genuinely removed first, not left in place
+    # to be duplicated alongside freshly-generated rows. The find_new_pdfs/
+    # find_new_images(rebuild=True) calls here are one-off gather calls
+    # feeding only this clear-set -- the real discovery below always uses
+    # rebuild=False, relying on the registries already being clean by then.
+    # -----------------------------------------------------------------------
+    redo_name_set = set(config.redo_names)
+    if config.rebuild:
+        redo_name_set |= {os.path.basename(p) for p in find_new_pdfs(config.input_dir, rebuild=True)}
+        redo_name_set |= {
+            os.path.basename(p)
+            for p in find_new_images(config.input_dir, images_registry_path, rebuild=True)
+        }
+
+    if redo_name_set:
+        from visual_parser.kb_redo import redo_entries
+        redo_result = redo_entries(output_dir, redo_name_set)
+        summary["redone_basenames"] = redo_result["cleared"]
+        summary["redo_names_not_found"] = redo_result["not_found"]
+        if redo_result["not_found"]:
+            logger.warning(
+                "--redo/--rebuild: no KB rows or registry entries found for: %s",
+                ", ".join(redo_result["not_found"]),
+            )
+        if redo_result["cleared"]:
+            print(f"[REDO] Cleared entries for: {', '.join(redo_result['cleared'])}")
+        else:
+            print("[REDO] Nothing to clear.")
+
+    # -----------------------------------------------------------------------
+    # Step 0 — Discover PDFs and standalone images to process
+    # -----------------------------------------------------------------------
+    new_images = find_new_images(config.input_dir, images_registry_path, rebuild=False)
+    summary["new_images_found"] = len(new_images)
+    # skip_images-aware view used for every "is there real work" decision
+    # below (early-return checks, warm-up need, progress prints) -- new_images
+    # itself stays the true discovered count for summary/reporting. Without
+    # this split, an image-only --skip-images run would still needlessly warm
+    # up a local Ollama vision model for work that's about to be skipped
+    # entirely (found during a post-ship review pass, confirmed via direct
+    # tracing: _ensure_ollama_vision_model() has no skip_images awareness of
+    # its own, so it relies entirely on callers only reaching it when there's
+    # real work -- which wasn't true before this split existed).
+    images_to_process = [] if config.skip_images else new_images
 
     if config.vision_provider == "gpt":
         _vision_api_key = config.openai_api_key
@@ -191,6 +259,32 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
         print(f"[OLLAMA] {_vision_model}: {describe_gpu_status(get_loaded_model_gpu_status(_vision_model))}")
         _ollama_resolved = True
 
+    def _run_image_processing() -> None:
+        # Standalone images never touch Nougat/text extraction, so this is
+        # called once per branch, right after that branch's own figure-
+        # description step -- by then _vision_model/_vision_api_key are
+        # already resolved (and, for Ollama, warmed up) in both branches.
+        # The _ensure_ollama_vision_model() call here is defense-in-depth
+        # (idempotent via _ollama_resolved) in case a future edit changes
+        # that ordering invariant.
+        if not new_images or config.skip_images:
+            return
+        if config.vision_provider == "ollama":
+            _ensure_ollama_vision_model()
+        written = describe_images(
+            new_image_paths  = new_images,
+            output_dir       = output_dir,
+            vision_provider  = config.vision_provider,
+            vision_api_key   = _vision_api_key,
+            vision_model     = _vision_model,
+            vision_detail    = config.vision_detail,
+            reasoning_effort = config.gpt_reasoning_effort,
+            max_workers      = config.max_workers,
+        )
+        if written:
+            mark_as_processed(images_registry_path, written)
+        summary["images_written"] = len(written)
+
     # Nougat and a local Ollama vision model both compete for the same GPU.
     # Loading Ollama's model up front would force Nougat to compete for
     # whatever VRAM is left over, defeating the point of releasing Nougat's
@@ -218,8 +312,8 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
             if f.lower().endswith(".pdf")
         ])
 
-        if not all_pdfs:
-            print("No PDFs found in input directory. Nothing to do.")
+        if not all_pdfs and not images_to_process:
+            print("No PDFs or images found in input directory. Nothing to do.")
             return summary
 
         if config.vision_provider == "ollama":
@@ -306,6 +400,14 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
         ) if os.path.exists(figures_path) else 0
         summary["figures_written"] = max(0, figures_after - figures_before)
 
+        # Step 2.5 — Describe standalone images (independent of --skip-text,
+        # which only pertains to PDF text extraction)
+        if images_to_process:
+            print(f"[Step 2] Describing {len(images_to_process)} standalone image(s) …")
+        elif new_images:
+            print(f"[Step 2] Skipping {len(new_images)} standalone image(s) (--skip-images).")
+        _run_image_processing()
+
         # Step 3 — Metadata JSONL
         print("[Step 3] Writing document metadata …")
         metadata_rows: List[dict] = []
@@ -330,20 +432,25 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
     else:
         # ── Normal (full) pipeline ───────────────────────────────────────────
 
-        new_pdfs = find_new_pdfs(config.input_dir, rebuild=config.rebuild)
+        new_pdfs = find_new_pdfs(config.input_dir, rebuild=False)
         summary["new_pdfs_found"] = len(new_pdfs)
 
-        if not new_pdfs and not config.rebuild:
+        if not new_pdfs:
             recovered = _recover_stale_registry_entries(config.input_dir, output_dir, registry_path)
             if recovered:
                 new_pdfs = find_new_pdfs(config.input_dir, rebuild=False)
                 summary["new_pdfs_found"] = len(new_pdfs)
 
-        if not new_pdfs:
-            print("No new PDFs found. Nothing to do.")
+        if not new_pdfs and not images_to_process:
+            print("No new PDFs or images found. Nothing to do.")
             return summary
 
-        print(f"Found {len(new_pdfs)} new PDF(s). Starting pipeline …")
+        if new_pdfs:
+            print(f"Found {len(new_pdfs)} new PDF(s). Starting pipeline …")
+        if images_to_process:
+            print(f"Found {len(images_to_process)} new image(s).")
+        elif new_images:
+            print(f"Found {len(new_images)} new image(s) -- skipping (--skip-images).")
 
         if config.vision_provider == "ollama" and not _defer_ollama_warm_up:
             _ensure_ollama_vision_model()
@@ -372,9 +479,13 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
         if not _defer_ollama_warm_up:
             pdf_meta_map = _run_metadata_extraction()
 
-        # Step 1 — Text extraction and chunking
+        # Step 1 — Text extraction and chunking. Guarded by `if new_pdfs:` so
+        # an image-only pass (possible now that images are tracked/processed
+        # independently of PDFs) never needlessly loads Nougat for zero PDFs.
         processor = model = device = None  # only bound by the "nougat" branch below
-        if config.text_mode == "nougat":
+        if not new_pdfs:
+            processed_basenames, failed_basenames, chunk_count = [], [], 0
+        elif config.text_mode == "nougat":
             print("[Step 1] Running Nougat text extraction …")
             from visual_parser.nougat_engine import NougatInitializer
             from visual_parser.text_extractor import lightweight_extract_pdfs, nougat_extract_pdfs
@@ -390,7 +501,6 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                     chunk_size         = config.chunk_size,
                     chunk_overlap      = config.chunk_overlap,
                     max_workers        = config.max_workers,
-                    rebuild            = config.rebuild,
                 )
                 print(nougat_summary)
             except Exception as exc:
@@ -402,7 +512,6 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                     chunk_size         = config.chunk_size,
                     chunk_overlap      = config.chunk_overlap,
                     max_workers        = config.max_workers,
-                    rebuild            = config.rebuild,
                 )
                 print(lw_summary)
             else:
@@ -419,7 +528,6 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                         chunk_size         = config.chunk_size,
                         chunk_overlap      = config.chunk_overlap,
                         max_workers        = config.max_workers,
-                        rebuild            = config.rebuild,
                     )
                     print(lw_summary)
                     processed_basenames.extend(lw_processed)
@@ -436,7 +544,6 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                 chunk_size         = config.chunk_size,
                 chunk_overlap      = config.chunk_overlap,
                 max_workers        = config.max_workers,
-                rebuild            = config.rebuild,
             )
             print(lw_summary)
 
@@ -494,6 +601,12 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
         else:
             print("[Step 2] No PDFs were successfully text-extracted; skipping figure description.")
 
+        # Step 2.5 — Describe standalone images (independent of PDF text
+        # extraction -- never touches Nougat/lightweight at all)
+        if images_to_process:
+            print(f"[Step 2] Describing {len(images_to_process)} standalone image(s) …")
+        _run_image_processing()
+
         # Step 3 — Write metadata JSONL
         print("[Step 3] Writing document metadata …")
         processed_set  = set(processed_basenames)
@@ -538,6 +651,7 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
     print(f"  Total PDFs failed     : {len(failed_basenames)}")
     print(f"  Total Text chunks     : {summary['text_chunks_written']}")
     print(f"  Total Figure records  : {summary['figures_written']}")
+    print(f"  Total Images processed: {summary['images_written']} / {summary['new_images_found']}")
     print(f"  Total Metadata records: {summary['metadata_written']}")
     print(f"  Output directory: {output_dir}")
     if failed_basenames:

@@ -175,6 +175,33 @@ def test_call_vision_llm_ollama_scales_timeout_with_image_count(monkeypatch, ima
     assert init_kwargs["timeout"] == expected_timeout
 
 
+def test_call_vision_llm_ollama_explicit_timeout_overrides_formula(monkeypatch):
+    """image_describer.py needs a timeout decoupled from this image-count
+    formula (calibrated for figure_describer.py's bounded FIGURE_PROMPT
+    output) -- an explicit override must win regardless of image count."""
+    _fake_client, init_kwargs = _patch_ollama_client(monkeypatch)
+    vision_llm.call_vision_llm_ollama(
+        images=[b"fake-png-bytes"],
+        prompt="describe",
+        model="qwen2.5-vl:32b",
+        timeout_seconds=900.0,
+    )
+    assert init_kwargs["timeout"] == 900.0
+
+
+def test_dispatcher_forwards_ollama_timeout_override(monkeypatch):
+    _fake_client, init_kwargs = _patch_ollama_client(monkeypatch)
+    vision_llm.call_vision_llm(
+        images=[b"fake-png-bytes"],
+        prompt="describe",
+        provider="ollama",
+        api_key="",
+        model="qwen2.5-vl:32b",
+        ollama_timeout_seconds=900.0,
+    )
+    assert init_kwargs["timeout"] == 900.0
+
+
 def test_dispatcher_routes_ollama_provider(monkeypatch):
     fake_client, _init_kwargs = _patch_ollama_client(monkeypatch)
     result = vision_llm.call_vision_llm(

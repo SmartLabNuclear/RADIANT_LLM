@@ -282,6 +282,7 @@ def call_vision_llm_ollama(
     prompt: str,
     model: str,
     detail: DetailLevel = "low",
+    timeout_seconds: Optional[float] = None,
 ) -> str:
     """
     Send *images* (PNG bytes) and *prompt* to a local vision-capable model
@@ -292,12 +293,21 @@ def call_vision_llm_ollama(
     model-family logic, not relevant to a locally-served model.
 
     Args:
-        images: List of raw PNG byte strings.
-        prompt: Text instruction for the model.
-        model:  Ollama model tag (e.g. "qwen2.5-vl:32b").
-        detail: Image detail hint forwarded in the image_url block, same as
-                the GPT path -- whether a given Ollama-served model honors it
-                is up to that model/Ollama's own handling, not this wrapper.
+        images:          List of raw PNG byte strings.
+        prompt:          Text instruction for the model.
+        model:           Ollama model tag (e.g. "qwen2.5-vl:32b").
+        detail:          Image detail hint forwarded in the image_url block,
+                         same as the GPT path -- whether a given
+                         Ollama-served model honors it is up to that
+                         model/Ollama's own handling, not this wrapper.
+        timeout_seconds: Explicit override. When None (default), falls back
+                         to the context-window-scaled formula below, which
+                         was calibrated for figure_describer.py's bounded,
+                         structured FIGURE_PROMPT output -- callers whose
+                         prompt can demand much longer generation (e.g.
+                         image_describer.py's verbatim full-text
+                         transcription requirement) should pass their own
+                         value rather than rely on that formula.
 
     Returns:
         Model response as a plain string.
@@ -315,12 +325,14 @@ def call_vision_llm_ollama(
             "and host.docker.internal:11434). Is it running?"
         )
 
-    # Local CPU-bound inference has no SLA the way cloud APIs do, so the SDK's
-    # cloud-oriented 600s default doesn't fit here. Scale with image count --
-    # more context pages means proportionally more vision-encoding + generation
-    # work: 10 min for a single image, +2.5 min per additional image (15 min at
-    # the 3-image case from --vision-context-pages 1).
-    timeout_seconds = 600.0 + (len(images) - 1) * 150.0
+    if timeout_seconds is None:
+        # Local CPU-bound inference has no SLA the way cloud APIs do, so the
+        # SDK's cloud-oriented 600s default doesn't fit here. Scale with image
+        # count -- more context pages means proportionally more vision-
+        # encoding + generation work: 10 min for a single image, +2.5 min per
+        # additional image (15 min at the 3-image case from
+        # --vision-context-pages 1).
+        timeout_seconds = 600.0 + (len(images) - 1) * 150.0
     client = OpenAI(api_key="ollama", base_url=base_url, timeout=timeout_seconds)
     content = _build_image_content(images, prompt, detail)
 
@@ -346,6 +358,7 @@ def call_vision_llm(
     model: str,
     detail: DetailLevel = "low",
     reasoning_effort: Optional[ReasoningEffort] = "medium",
+    ollama_timeout_seconds: Optional[float] = None,
 ) -> str:
     """
     Unified vision-LLM dispatcher.
@@ -354,15 +367,23 @@ def call_vision_llm(
     empty or None, falls back to the latest default for that provider.
 
     Args:
-        images:           List of raw PNG byte strings.
-        prompt:           Text instruction for the model.
-        provider:         ``'gpt'``, ``'gemini'``, or ``'ollama'``.
-        api_key:          API key for the chosen provider (unused for ollama).
-        model:            Model name string.
-        detail:           Image detail level. Forwarded to GPT and Ollama;
-                          ignored for Gemini (no equivalent in its API).
-        reasoning_effort: Reasoning depth for GPT-5.x (ignored for older GPT
-                          models and all Gemini/Ollama models).
+        images:                 List of raw PNG byte strings.
+        prompt:                 Text instruction for the model.
+        provider:               ``'gpt'``, ``'gemini'``, or ``'ollama'``.
+        api_key:                API key for the chosen provider (unused for ollama).
+        model:                  Model name string.
+        detail:                 Image detail level. Forwarded to GPT and
+                                Ollama; ignored for Gemini (no equivalent in
+                                its API).
+        reasoning_effort:       Reasoning depth for GPT-5.x (ignored for
+                                older GPT models and all Gemini/Ollama models).
+        ollama_timeout_seconds: Forwarded to call_vision_llm_ollama's own
+                                timeout_seconds override (ignored for gpt/
+                                gemini -- cloud APIs are reliably fast, this
+                                isn't their problem). See that function's
+                                docstring for why this needs to be settable
+                                per caller rather than always using its
+                                built-in context-window-scaled formula.
 
     Returns:
         Model response as a plain string.
@@ -396,7 +417,10 @@ def call_vision_llm(
     if provider == "gemini":
         return call_vision_llm_gemini(images, prompt, api_key, model=resolved_model)
     if provider == "ollama":
-        return call_vision_llm_ollama(images, prompt, model=resolved_model, detail=detail)
+        return call_vision_llm_ollama(
+            images, prompt, model=resolved_model, detail=detail,
+            timeout_seconds=ollama_timeout_seconds,
+        )
 
     raise RuntimeError(
         f"Unknown vision provider: {provider!r}. Must be 'gpt', 'gemini', or 'ollama'."

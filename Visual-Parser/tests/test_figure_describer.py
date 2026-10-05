@@ -60,6 +60,33 @@ def test_context_pages_zero_sends_one_image_per_call(tmp_path, monkeypatch):
     assert {r["page"] for r in rows} == {1, 2, 3}
 
 
+def test_non_string_description_is_skipped_not_written(tmp_path, monkeypatch):
+    """Regression test: a weak/non-compliant model can return 'description'
+    as a nested object instead of the documented flat string. Before the
+    isinstance(description, str) fix, this silently wrote the dict straight
+    into 02_visuals_kb.jsonl's 'description' field with no warning at all --
+    unlike image_describer.py's sibling bug, this one never crashed, so it
+    needs its own explicit check that the row is actually dropped."""
+    pdf_path = _make_pdf(tmp_path / "doc.pdf", num_pages=1)
+
+    def fake(images, prompt, provider, api_key, model, detail, reasoning_effort):
+        return json.dumps([{"description": {"Subject": "nested, not flat"}}])
+
+    monkeypatch.setattr(figure_describer, "call_vision_llm", fake)
+
+    figure_describer.describe_figures_for_new_pdfs(
+        new_pdf_paths=[pdf_path],
+        output_dir=str(tmp_path),
+        vision_provider="gpt",
+        vision_api_key="sk-test",
+        vision_model="gpt-5.4",
+        max_workers=1,
+        context_pages=0,
+    )
+
+    assert _read_jsonl(tmp_path / "02_visuals_kb.jsonl") == []
+
+
 def test_context_pages_window_bounded_at_pdf_edges(tmp_path, monkeypatch):
     pdf_path = _make_pdf(tmp_path / "doc.pdf", num_pages=3)
     captured = {}  # page_number -> image_count

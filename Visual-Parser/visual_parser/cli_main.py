@@ -42,11 +42,13 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="visual-parser",
         description=(
-            "Visual-RAG PDF Parser - detects new PDFs, extracts text and "
-            "figure descriptions, and writes three JSONL knowledge bases:\n"
-            "  01_chunks_kb.jsonl   text chunks\n"
-            "  02_visuals_kb.jsonl  visual descriptions\n"
-            "  03_metadata_kb.jsonl document metadata"
+            "Visual-RAG PDF Parser - detects new PDFs and standalone images, "
+            "extracts text and figure/image descriptions, and writes JSONL "
+            "knowledge bases:\n"
+            "  01_chunks_kb.jsonl       text chunks\n"
+            "  02_visuals_kb.jsonl      PDF figure descriptions\n"
+            "  03_metadata_kb.jsonl     document metadata\n"
+            "  image_descriptions.jsonl standalone image descriptions"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=USAGE_EXAMPLES,
@@ -65,8 +67,9 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         "-i",
         required=False,
         metavar="DIR",
-        help="Directory to scan for PDF files (searched recursively). "
-             "Required unless --list-models is given.",
+        help="Directory to scan for PDF files and standalone images "
+             "(searched recursively, auto-detected by extension -- a single "
+             "directory may mix both). Required unless --list-models is given.",
     )
     io_group.add_argument(
         "--output-dir",
@@ -174,6 +177,18 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         help="Number of front pages sent to the vision LLM for metadata extraction (default: 2).",
     )
 
+    image_group = parser.add_argument_group("Image processing")
+    image_group.add_argument(
+        "--skip-images",
+        action="store_true",
+        help=(
+            "Skip standalone-image processing entirely, even if image files "
+            "(.png/.jpg/.jpeg/.tif/.tiff/.bmp) are found in --input-dir. "
+            "Reuses --vision-provider/--vision-model/--vision-detail/"
+            "--reasoning-effort/--max-workers -- no separate image vision flags."
+        ),
+    )
+
     perf_group = parser.add_argument_group("Performance")
     perf_group.add_argument(
         "--max-workers",
@@ -199,8 +214,22 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         "--rebuild",
         action="store_true",
         help=(
-            "Reprocess ALL PDFs, ignoring the 04_processed_pdfs.txt registry. "
-            "Use after changing prompts, chunking strategy, or switching models."
+            "Clear and reprocess every PDF/image currently in --input-dir. "
+            "Use after changing prompts, chunking strategy, or switching models. "
+            "No duplicate rows -- old entries are removed before reprocessing."
+        ),
+    )
+    misc_group.add_argument(
+        "--redo",
+        action="append",
+        default=None,
+        metavar="NAME",
+        help=(
+            "Clear ALL existing KB rows and registry entries for this PDF or "
+            "image basename (case-sensitive, path-stripped), then let normal "
+            "discovery reprocess it in this same run -- no duplicates. "
+            "Repeatable: --redo doc1.pdf --redo diagram2.png. Combine with "
+            "--rebuild to clear+reprocess everything in --input-dir instead."
         ),
     )
     misc_group.add_argument(
@@ -265,7 +294,9 @@ def main(argv=None) -> int:
         vision_context_pages=args.vision_context_pages,
         max_workers=args.max_workers,
         rebuild=args.rebuild,
+        redo_names=args.redo or [],
         skip_text=args.skip_text,
+        skip_images=args.skip_images,
         log_level=args.log_level,
     )
 

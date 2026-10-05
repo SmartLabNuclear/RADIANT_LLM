@@ -117,6 +117,13 @@ def describe_figures_for_new_pdfs(
                           0 (default) reproduces the exact single-page
                           behavior this function had before this parameter
                           existed.
+
+    Always resumes from 02_visuals_kb.jsonl's existing content (page-level,
+    via the done_pages set below) -- callers that want a page redescribed
+    must first remove its existing row(s) (see kb_redo.redo_entries()) and
+    its basename from the processed-PDFs registry, then pass it in here as
+    if new; this function has no bypass of its own, so there is no path to
+    producing a duplicate row.
     """
     # -----------------------------------------------------------------------
     # Step 1 – Rasterise every page of every new PDF
@@ -249,7 +256,13 @@ def describe_figures_for_new_pdfs(
                 if not isinstance(caption, dict):
                     continue
                 description = caption.get("description")
-                if description is None:
+                if not isinstance(description, str):
+                    logger.warning(
+                        "Figure %d on %s page %d has a non-string 'description' "
+                        "(got %s) -- model likely returned a malformed/nested "
+                        "response; skipping.",
+                        fig_idx, pdf_name, page_number, type(description).__name__,
+                    )
                     continue
                 page_rows.append({
                     "source":       pdf_name,

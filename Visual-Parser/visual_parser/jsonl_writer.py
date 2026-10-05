@@ -11,7 +11,7 @@ import hashlib
 import json
 import logging
 import os
-from typing import Dict, List
+from typing import Callable, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ def make_document_id(source: str) -> str:
         return source
 
 
-def append_to_jsonl(jsonl_file: str, new_data: List[Dict]) -> None:
+def append_to_jsonl(jsonl_file: str, new_data: List[Dict]) -> bool:
     """
     Safely append *new_data* to a JSON Lines file.
 
@@ -39,6 +39,17 @@ def append_to_jsonl(jsonl_file: str, new_data: List[Dict]) -> None:
       entire write.
     - Never corrupts existing content: each row is appended as a complete
       ``\\n``-terminated JSON line.
+
+    Returns True if the file was opened and written without a file-system-
+    level error (even if some individual rows were skipped for being
+    unserialisable), False if the write failed entirely (e.g. disk full,
+    permissions). No existing caller checked this return value before it was
+    added (confirmed: every call site is a bare statement), so adding a
+    meaningful value here is backward compatible -- but callers whose own
+    resume/registry state depends on the write actually landing (e.g.
+    image_describer.py marking an image "processed") should check it instead
+    of assuming success, since a caught exception here previously had no way
+    to propagate past this function at all.
 
     Args:
         jsonl_file: Absolute or relative path to the target ``.jsonl`` file.
@@ -49,7 +60,7 @@ def append_to_jsonl(jsonl_file: str, new_data: List[Dict]) -> None:
             "append_to_jsonl: new_data must be a list, got %s — skipping.",
             type(new_data).__name__,
         )
-        return
+        return False
 
     try:
         parent = os.path.dirname(jsonl_file)
@@ -65,11 +76,14 @@ def append_to_jsonl(jsonl_file: str, new_data: List[Dict]) -> None:
                     fh.write(json.dumps(row, ensure_ascii=False) + "\n")
                 except (TypeError, ValueError) as exc:
                     logger.warning("Failed to serialise row — skipping. Error: %s", exc)
+        return True
 
     except OSError as exc:
         logger.error("File-system error writing %s: %s", jsonl_file, exc)
+        return False
     except Exception as exc:
         logger.error("Unexpected error writing %s: %s", jsonl_file, exc)
+        return False
 
 
 def read_jsonl(jsonl_path: str) -> List[Dict]:
@@ -100,3 +114,50 @@ def read_jsonl(jsonl_path: str) -> List[Dict]:
         logger.error("Error reading %s: %s", jsonl_path, exc)
 
     return rows
+
+
+def atomic_rewrite_jsonl(jsonl_path: str, keep_predicate: Callable[[Dict], bool]) -> Dict[str, int]:
+    """
+    Rewrite *jsonl_path* in place, keeping only rows where
+    ``keep_predicate(row)`` is True.
+
+    Reads line by line, writes kept rows to a temp file, then replaces the
+    original atomically via ``os.replace()`` -- deliberately not
+    ``shutil.move()``, which on Windows silently degrades to a non-atomic
+    copy+delete when the destination already exists (which it always does
+    here). Malformed lines are skipped (counted, not kept, not re-written).
+
+    Returns {"removed": int, "kept": int, "malformed": int}. Does nothing
+    (all-zero result) if *jsonl_path* doesn't exist.
+    """
+    if not os.path.exists(jsonl_path):
+        return {"removed": 0, "kept": 0, "malformed": 0}
+
+    removed = kept = malformed = 0
+    tmp_path = jsonl_path + ".tmp"
+
+    try:
+        with open(jsonl_path, "r", encoding="utf-8") as infile, \
+             open(tmp_path, "w", encoding="utf-8") as outfile:
+            for line in infile:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    row = json.loads(line)
+                except json.JSONDecodeError:
+                    malformed += 1
+                    continue
+                if keep_predicate(row):
+                    outfile.write(json.dumps(row, ensure_ascii=False) + "\n")
+                    kept += 1
+                else:
+                    removed += 1
+        os.replace(tmp_path, jsonl_path)
+    except Exception as exc:
+        logger.error("Error rewriting %s: %s", jsonl_path, exc)
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        return {"removed": 0, "kept": 0, "malformed": 0}
+
+    return {"removed": removed, "kept": kept, "malformed": malformed}

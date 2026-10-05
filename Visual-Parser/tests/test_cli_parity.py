@@ -34,6 +34,30 @@ def test_cli_and_cli_main_have_identical_flag_structure():
         assert a1.option_strings == a2.option_strings, f"--{dest}: flag spelling mismatch"
 
 
+def test_help_text_image_mentions_match():
+    """cli.py and cli_main.py deliberately use different unicode-vs-ASCII
+    characters in help text (that's the whole reason cli_main.py exists --
+    see its module docstring), so help strings aren't expected to be
+    byte-identical, and the structural parity test above doesn't compare
+    them at all. But one file's help text documenting a real capability
+    (e.g. standalone-image support) that the other omits entirely is a real
+    content drift, not a cosmetic one -- this is a regression test for
+    exactly that: --input-dir's help text in cli.py forgot to mention images
+    when --skip-images was added to both files' flag sets."""
+    actions1 = _actions_by_dest(cli._build_arg_parser())
+    actions2 = _actions_by_dest(cli_main._build_arg_parser())
+
+    for dest in actions1:
+        if dest not in actions2:
+            continue
+        mentions1 = "image" in (actions1[dest].help or "").lower()
+        mentions2 = "image" in (actions2[dest].help or "").lower()
+        assert mentions1 == mentions2, (
+            f"--{dest}: one file's help text mentions images, the other doesn't "
+            f"(cli={mentions1}, cli_main={mentions2})"
+        )
+
+
 @pytest.mark.parametrize("module_name", sorted(MODULES))
 def test_missing_input_dir_errors_unless_list_models(module_name):
     module = MODULES[module_name]

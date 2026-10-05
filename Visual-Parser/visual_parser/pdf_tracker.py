@@ -63,6 +63,31 @@ def mark_as_processed(
     save_processed_pdfs(registry_path, sorted(existing))
 
 
+def unmark_as_processed(registry_path: str, names_to_remove: List[str]) -> int:
+    """
+    Remove *names_to_remove* basenames from the registry (exact match, same
+    case-sensitive convention as load_processed_pdfs/mark_as_processed --
+    these are what actually govern registry contents, so this matches them
+    rather than the separate .lower()-everywhere convention used elsewhere
+    for other, unrelated comparisons).
+
+    Inverse of mark_as_processed. Safe to call even if the registry doesn't
+    exist (returns 0). Only rewrites the file when something actually
+    matched, unlike mark_as_processed (which always re-saves).
+
+    Returns the number of entries actually removed.
+    """
+    existing = load_processed_pdfs(registry_path)
+    if not existing:
+        return 0
+    remove_set = set(names_to_remove)
+    kept = [name for name in existing if name not in remove_set]
+    removed = len(existing) - len(kept)
+    if removed:
+        save_processed_pdfs(registry_path, sorted(set(kept)))
+    return removed
+
+
 # ---------------------------------------------------------------------------
 # PDF discovery
 # ---------------------------------------------------------------------------

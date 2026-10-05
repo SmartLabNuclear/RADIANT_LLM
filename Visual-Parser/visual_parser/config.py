@@ -12,7 +12,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal, Optional
+from typing import List, Literal, Optional
 
 from dotenv import load_dotenv
 
@@ -139,7 +139,23 @@ class ParserConfig:
 
     # --- Misc ----------------------------------------------------------------
     rebuild: bool = False
-    """If True, reprocess all PDFs even if already recorded in 04_processed_pdfs.txt."""
+    """
+    If True, clear and reprocess every PDF/image currently in input_dir,
+    regardless of the registries -- implemented via kb_redo.redo_entries()
+    (clear KB rows + registry entries first, then let normal discovery pick
+    everything back up as new), so this produces no duplicate rows.
+    """
+
+    redo_names: List[str] = field(default_factory=list)
+    """
+    PDF or image basenames (case-sensitive, path-stripped) to clear from
+    every KB JSONL file and both registries before this run's discovery
+    step, via kb_redo.redo_entries() -- so the normal pipeline naturally
+    reprocesses them cleanly in this same run, with no duplicate rows,
+    unlike blindly reprocessing over an already-populated KB. A name that's
+    no longer present in input_dir degrades gracefully to a clean removal
+    (nothing left to reprocess).
+    """
 
     skip_text: bool = False
     """
@@ -148,6 +164,14 @@ class ParserConfig:
     failed mid-run (e.g. API credit exhaustion).  All PDFs in input_dir are
     re-queued for vision steps; PDFs already present in 02_visuals_kb.jsonl /
     03_metadata_kb.jsonl are skipped automatically.
+    """
+
+    skip_images: bool = False
+    """
+    If True, skip standalone-image processing entirely, even if image files
+    are found in input_dir. Mirrors skip_text's opt-out pattern -- an escape
+    hatch for existing PDF-only workflows that don't want stray image files
+    sitting in input_dir to suddenly start being processed.
     """
 
     log_level: str = "ERROR"
@@ -176,7 +200,9 @@ class ParserConfig:
             vision_context_pages = int(os.getenv("VISUAL_PARSER_VISION_CONTEXT_PAGES", "0")),
             max_workers          = int(os.getenv("VISUAL_PARSER_MAX_WORKERS", "4")),
             rebuild              = os.getenv("VISUAL_PARSER_REBUILD", "false").lower() == "true",
+            redo_names           = [n.strip() for n in os.getenv("VISUAL_PARSER_REDO_NAMES", "").split(",") if n.strip()],
             skip_text            = os.getenv("VISUAL_PARSER_SKIP_TEXT", "false").lower() == "true",
+            skip_images          = os.getenv("VISUAL_PARSER_SKIP_IMAGES", "false").lower() == "true",
             log_level            = os.getenv("VISUAL_PARSER_LOG_LEVEL", "ERROR"),
         )
 
