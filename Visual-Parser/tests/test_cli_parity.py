@@ -81,6 +81,77 @@ def test_main_respects_explicit_vision_model_override(module_name, monkeypatch, 
     assert captured["config"].gpt_vision_model == "gpt-4o"
 
 
+@pytest.mark.parametrize("module_name", sorted(MODULES))
+def test_vision_model_stays_empty_for_ollama_with_no_override(module_name, monkeypatch, tmp_path):
+    """Regression test: unlike gpt/gemini, 'ollama' must NOT get a hardcoded
+    default vision model -- leaving it empty is what triggers VRAM-aware
+    auto-selection in pipeline.py. Mocks select_best_vision_model so this
+    test doesn't touch a real Ollama instance."""
+    module = MODULES[module_name]
+    captured = {}
+
+    def fake_run_pipeline(config):
+        captured["config"] = config
+        return {}
+
+    monkeypatch.setattr("visual_parser.pipeline.run_pipeline", fake_run_pipeline)
+    monkeypatch.setattr("visual_parser.ollama_local.select_best_vision_model", lambda: "llava:13b")
+
+    rc = module.main(["--input-dir", str(tmp_path), "--vision-provider", "ollama"])
+    assert rc == 0
+    assert captured["config"].ollama_vision_model == ""  # empty -- auto-selection was used
+    assert captured["config"].vision_provider == "ollama"
+
+
+@pytest.mark.parametrize("module_name", sorted(MODULES))
+def test_vision_model_override_respected_for_ollama(module_name, monkeypatch, tmp_path):
+    module = MODULES[module_name]
+    captured = {}
+
+    def fake_run_pipeline(config):
+        captured["config"] = config
+        return {}
+
+    monkeypatch.setattr("visual_parser.pipeline.run_pipeline", fake_run_pipeline)
+
+    rc = module.main([
+        "--input-dir", str(tmp_path), "--vision-provider", "ollama", "--vision-model", "qwen2.5-vl:32b",
+    ])
+    assert rc == 0
+    assert captured["config"].ollama_vision_model == "qwen2.5-vl:32b"
+
+
+@pytest.mark.parametrize("module_name", sorted(MODULES))
+def test_vision_context_pages_flag_reaches_config(module_name, monkeypatch, tmp_path):
+    module = MODULES[module_name]
+    captured = {}
+
+    def fake_run_pipeline(config):
+        captured["config"] = config
+        return {}
+
+    monkeypatch.setattr("visual_parser.pipeline.run_pipeline", fake_run_pipeline)
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+
+    module.main(["--input-dir", str(tmp_path), "--vision-context-pages", "1"])
+    assert captured["config"].vision_context_pages == 1
+
+
+@pytest.mark.parametrize("module_name", sorted(MODULES))
+def test_main_returns_1_on_ollama_runtime_error(module_name, monkeypatch, tmp_path):
+    """A RuntimeError from auto-selection (or the vision call itself) should
+    print a clean [ERROR] message and return 1, not an unhandled traceback."""
+    module = MODULES[module_name]
+
+    def raising_run_pipeline(config):
+        raise RuntimeError("No vision-capable Ollama models are pulled.")
+
+    monkeypatch.setattr("visual_parser.pipeline.run_pipeline", raising_run_pipeline)
+
+    rc = module.main(["--input-dir", str(tmp_path), "--vision-provider", "ollama"])
+    assert rc == 1
+
+
 def test_cli_main_returns_2_when_pipeline_reports_failures(monkeypatch, tmp_path):
     monkeypatch.setattr(
         "visual_parser.pipeline.run_pipeline",

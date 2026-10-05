@@ -4,9 +4,10 @@ model_catalog.py — Live OpenAI/Gemini vision-model catalogs for visual-parser.
 Same philosophy as the equivalent module in AutoSAM/RADIANT-LLM: instead of a
 hardcoded model list in --help text that silently goes stale, ask each
 provider what's actually usable right now via its own model-listing endpoint.
-Ported and trimmed for this standalone package -- no Ollama/Grace-vLLM local
-model support here, since visual-parser only ever calls a cloud vision LLM
-(--vision-provider {gpt,gemini}), never a local/self-hosted one.
+Ported and trimmed for this standalone package. Local Ollama models
+(--vision-provider ollama) are handled separately in ollama_local.py, since
+listing them involves vision-capability detection and VRAM-aware selection
+that have no equivalent here for the cloud providers.
 """
 
 from __future__ import annotations

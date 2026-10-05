@@ -59,6 +59,20 @@ docker run --rm --env-file .env \
   --vision-provider gemini --vision-model gemini-2.5-flash
 ```
 
+### Local Ollama (no API key, auto-selected model)
+
+Reaches a host-installed Ollama via `host.docker.internal:11434` (automatic on Docker Desktop;
+on native Linux, add `--add-host=host.docker.internal:host-gateway`). Omit `--vision-model` to
+auto-select the largest locally-pulled vision-capable model that fits in free VRAM:
+
+```bash
+docker run --rm --gpus all --env-file .env \
+  -v "/path/to/pdfs:/data" \
+  zev94/radiant-llm:visual-parser-latest \
+  --input-dir /data --output-dir /data \
+  --vision-provider ollama
+```
+
 ### GPT-4o (previous-generation OpenAI)
 
 ```bash

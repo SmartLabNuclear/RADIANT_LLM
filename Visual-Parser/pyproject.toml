@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "visual-parser"
-version = "2.1.1"
+version = "2.2.0"
 description = "Standalone Visual-RAG PDF Parser - text extraction and Vision-LLM figure descriptions to JSONL"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -43,6 +43,7 @@ dependencies = [
     "langchain-text-splitters>=0.0.1", # RecursiveCharacterTextSplitter (split out from langchain in v0.2+)
     "openai>=1.14.0",
     "google-generativeai>=0.5.0",
+    "requests>=2.31.0",                # local Ollama vision provider (model listing, capability detection)
     "python-dotenv>=1.0.0",
     "tqdm>=4.66.0",
     "nltk>=3.8",                       # required by NougatTokenizerFast
@@ -67,8 +68,9 @@ include = ["visual_parser*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-m 'not integration'"
 markers = [
-    "integration: requires a live OPENAI_API_KEY/GEMINI_API_KEY and network access; skipped by default",
+    "integration: requires a live OPENAI_API_KEY/GEMINI_API_KEY/Ollama instance and network access; excluded by default, run explicitly with 'pytest -m integration'",
 ]
 
 [tool.ruff]

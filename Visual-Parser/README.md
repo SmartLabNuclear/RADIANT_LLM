@@ -19,6 +19,7 @@
   - [Via Docker](#via-docker)
   - [From source](#from-source)
 - [Common configuration flags](#common-configuration-flags)
+- [Local Ollama vision provider](#local-ollama-vision-provider)
 - [Citation](#citation)
 - [License](#license)
 
@@ -218,11 +219,12 @@ Text extraction:
 - `--chunk-overlap 100`
 
 Vision LLM:
-- `--vision-provider gpt|gemini` (default: `gpt`)
-- `--vision-model gpt-5.6` (or `gpt-4o`, `gemini-2.5-flash`, etc. — run `--list-models` for what's actually live on your account)
+- `--vision-provider gpt|gemini|ollama` (default: `gpt`) — see [Local Ollama vision provider](#local-ollama-vision-provider) for the `ollama` option
+- `--vision-model gpt-5.6` (or `gpt-4o`, `gemini-2.5-flash`, etc. — run `--list-models` for what's actually live on your account; omit entirely for `ollama` to auto-select)
 - `--vision-detail low|high|auto` (default: `low`)
 - `--reasoning-effort minimal|none|low|medium|high|xhigh` (default: `medium`)
 - `--metadata-pages 2`
+- `--vision-context-pages 0` — include N adjacent pages (before and after) as context in each figure-description call, to help with figures/captions that span a page break. 0 (default) is today's single-page behavior; more context pages means more tokens per call
 
 Performance / misc:
 - `--max-workers 4`
@@ -231,6 +233,29 @@ Performance / misc:
 - `--list-models` — print the live, currently-available vision models for whichever provider(s) you have a key configured for, then exit (no PDF processing). Reflects Portkey's catalog too when that's active.
 - `--version` / `-V`
 - `--log-level DEBUG|INFO|WARNING|ERROR` (default: `ERROR`)
+
+## Local Ollama vision provider
+
+`--vision-provider ollama` runs figure description and metadata extraction against a locally-pulled model served by [Ollama](https://ollama.com), instead of a cloud API — no API key needed, no per-call cost.
+
+```bash
+visual-parser --input-dir /path/to/pdfs --vision-provider ollama
+```
+
+Omit `--vision-model` and the largest locally-pulled, vision-capable model that fits in currently-free GPU VRAM is auto-selected (logged to the console/`05_pipeline.log` as it's picked). To use a specific model instead, pass it explicitly:
+
+```bash
+visual-parser --input-dir /path/to/pdfs --vision-provider ollama --vision-model qwen2.5-vl:32b
+```
+
+Auto-selection:
+- Pull at least one vision-capable model first: `ollama pull llava` (or any other vision-capable tag).
+- Vision capability is detected via Ollama's reported model capabilities, falling back to a name heuristic (`llava`, `vision`, `-vl`, `pixtral`, `moondream`, `minicpm-v`, `bakllava`) on older Ollama versions that don't report it.
+- The selection budget is 85% of currently-free VRAM (not total VRAM) — this correctly leaves room for whatever else is already resident (e.g. Nougat's model during the same pipeline run) and for the model's own KV-cache/context overhead, which isn't included in its on-disk size.
+- If no CUDA GPU is visible to the process at all — including the case of running in a Docker container without `--gpus all` while Ollama runs on the host with a real GPU — CPU-only Ollama is treated as a legitimate setup: auto-selection falls back to the smallest pulled vision-capable model instead of refusing, printing a clear warning that it's running CPU-only and will be slow. Pass an explicit `--vision-model` to pick a different one.
+- If a real GPU *is* visible but no vision-capable model fits the free-VRAM budget, that case stays strict — auto-selection raises an error asking for an explicit `--vision-model`, rather than silently falling back to heavy CPU offload.
+
+Reachability: checks `OLLAMA_BASE_URL` (if set) → `http://localhost:11434` → `http://host.docker.internal:11434` (the containerized case). On Docker Desktop (Windows/macOS) the container reaches a host-installed Ollama automatically; on native Linux Docker Engine, add `--add-host=host.docker.internal:host-gateway` to the `docker run` command, or set `OLLAMA_BASE_URL` directly.
 
 ---
 

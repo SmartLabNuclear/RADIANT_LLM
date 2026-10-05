@@ -143,11 +143,66 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
     # -----------------------------------------------------------------------
     registry_path = os.path.join(output_dir, PROCESSED_REGISTRY)
 
-    _vision_api_key = (
-        config.openai_api_key if config.vision_provider == "gpt" else config.gemini_api_key
-    )
-    _vision_model = (
-        config.gpt_vision_model if config.vision_provider == "gpt" else config.gemini_vision_model
+    if config.vision_provider == "gpt":
+        _vision_api_key = config.openai_api_key
+        _vision_model = config.gpt_vision_model
+    elif config.vision_provider == "gemini":
+        _vision_api_key = config.gemini_api_key
+        _vision_model = config.gemini_vision_model
+    else:  # "ollama" -- no API key needed
+        _vision_api_key = ""
+        _vision_model = None  # resolved lazily by _ensure_ollama_vision_model()
+
+    _ollama_resolved = False
+
+    def _ensure_ollama_vision_model() -> None:
+        # Deliberately lazy: resolving a name (possibly a network call to
+        # select_best_vision_model()) and warming up the model (a real GPU
+        # load) both have real cost/failure modes, so this is only called
+        # once each branch below has confirmed there's actual work to do --
+        # a no-op run (nothing new to process) must stay a true no-op, same
+        # as it already is for gpt/gemini, instead of needlessly contacting
+        # Ollama or loading a multi-GB model just to then do nothing with it.
+        nonlocal _vision_model, _ollama_resolved
+        if _ollama_resolved:
+            return
+        if config.ollama_vision_model:
+            _vision_model = config.ollama_vision_model
+        else:
+            # Raises RuntimeError (caught by cli.py/cli_main.py's main()) if
+            # Ollama is unreachable, has no vision-capable models pulled, or
+            # none fit in currently-free VRAM.
+            from visual_parser.ollama_local import select_best_vision_model
+            _vision_model = select_best_vision_model()
+            print(f"[OLLAMA] Auto-selected vision model: {_vision_model}")
+
+        # Force the load now (one request) rather than letting the first of
+        # several concurrent Step 2 workers absorb Ollama's cold-load delay,
+        # then report whether it actually landed on GPU or CPU -- the
+        # OpenAI-compatible endpoint used for the real calls has no way to
+        # surface this; Ollama's own /api/ps does.
+        from visual_parser.ollama_local import (
+            describe_gpu_status,
+            get_loaded_model_gpu_status,
+            warm_up_model,
+        )
+        print(f"[OLLAMA] Loading {_vision_model} …")
+        warm_up_model(_vision_model)
+        print(f"[OLLAMA] {_vision_model}: {describe_gpu_status(get_loaded_model_gpu_status(_vision_model))}")
+        _ollama_resolved = True
+
+    # Nougat and a local Ollama vision model both compete for the same GPU.
+    # Loading Ollama's model up front would force Nougat to compete for
+    # whatever VRAM is left over, defeating the point of releasing Nougat's
+    # memory below before the vision steps run. Defer the load until after
+    # Nougat has run and released its memory instead -- but only for this one
+    # combination: cloud providers never touch local GPU, skip-text mode
+    # never runs Nougat at all, and lightweight text extraction never touches
+    # the GPU either, so none of those need deferring.
+    _defer_ollama_warm_up = (
+        config.vision_provider == "ollama"
+        and config.text_mode == "nougat"
+        and not config.skip_text
     )
 
     if config.skip_text:
@@ -166,6 +221,9 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
         if not all_pdfs:
             print("No PDFs found in input directory. Nothing to do.")
             return summary
+
+        if config.vision_provider == "ollama":
+            _ensure_ollama_vision_model()  # never deferred here -- skip-text never runs Nougat
 
         # Build set of PDFs already in 03_metadata_kb.jsonl (PDF-level, skip whole PDF)
         # 02_visuals_kb.jsonl deduplication is handled at page level inside
@@ -240,6 +298,8 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
             vision_model     = _vision_model,
             vision_detail    = config.vision_detail,
             reasoning_effort = config.gpt_reasoning_effort,
+            max_workers      = config.max_workers,
+            context_pages    = config.vision_context_pages,
         )
         figures_after = sum(
             1 for line in open(figures_path, encoding="utf-8") if line.strip()
@@ -285,25 +345,35 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
 
         print(f"Found {len(new_pdfs)} new PDF(s). Starting pipeline …")
 
-        # Step 0.5 — Metadata extraction
-        pdf_meta_map = {}
-        for pdf_path in new_pdfs:
-            try:
-                meta = extract_pdf_metadata(
-                    pdf_path         = pdf_path,
-                    vision_provider  = config.vision_provider,
-                    vision_api_key   = _vision_api_key,
-                    vision_model     = _vision_model,
-                    num_pages        = config.metadata_pages,
-                    vision_detail    = config.vision_detail,
-                    reasoning_effort = config.gpt_reasoning_effort,
-                )
-                pdf_meta_map[pdf_path] = meta
-            except Exception as exc:
-                logger.warning("Metadata extraction failed for %s: %s", pdf_path, exc)
-                pdf_meta_map[pdf_path] = {"_error": str(exc)}
+        if config.vision_provider == "ollama" and not _defer_ollama_warm_up:
+            _ensure_ollama_vision_model()
+
+        def _run_metadata_extraction() -> Dict[str, dict]:
+            meta_map: Dict[str, dict] = {}
+            for pdf_path in new_pdfs:
+                try:
+                    meta = extract_pdf_metadata(
+                        pdf_path         = pdf_path,
+                        vision_provider  = config.vision_provider,
+                        vision_api_key   = _vision_api_key,
+                        vision_model     = _vision_model,
+                        num_pages        = config.metadata_pages,
+                        vision_detail    = config.vision_detail,
+                        reasoning_effort = config.gpt_reasoning_effort,
+                    )
+                    meta_map[pdf_path] = meta
+                except Exception as exc:
+                    logger.warning("Metadata extraction failed for %s: %s", pdf_path, exc)
+                    meta_map[pdf_path] = {"_error": str(exc)}
+            return meta_map
+
+        # Step 0.5 — Metadata extraction (deferred until after Step 1 for the
+        # ollama+nougat combination -- see _defer_ollama_warm_up above)
+        if not _defer_ollama_warm_up:
+            pdf_meta_map = _run_metadata_extraction()
 
         # Step 1 — Text extraction and chunking
+        processor = model = device = None  # only bound by the "nougat" branch below
         if config.text_mode == "nougat":
             print("[Step 1] Running Nougat text extraction …")
             from visual_parser.nougat_engine import NougatInitializer
@@ -374,6 +444,23 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
         summary["failed_basenames"]    = failed_basenames
         summary["text_chunks_written"] = chunk_count
 
+        # Nougat is done with the GPU by now (Step 1 has fully completed,
+        # success or fallback) but its model otherwise stays resident in
+        # VRAM for the rest of this function's scope -- release it before
+        # Step 2 so the vision step (and any local Ollama model it loads)
+        # has that memory available instead.
+        if model is not None:
+            del processor, model
+            import torch
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+        if _defer_ollama_warm_up:
+            # Now that Nougat has released the GPU, resolve/load the Ollama
+            # vision model and run the metadata extraction deferred above.
+            _ensure_ollama_vision_model()
+            pdf_meta_map = _run_metadata_extraction()
+
         # Step 2 — Figure description
         figures_path = os.path.join(output_dir, "02_visuals_kb.jsonl")
 
@@ -400,6 +487,8 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                 vision_model     = _vision_model,
                 vision_detail    = config.vision_detail,
                 reasoning_effort = config.gpt_reasoning_effort,
+                max_workers      = config.max_workers,
+                context_pages    = config.vision_context_pages,
             )
             summary["figures_written"] = max(0, _count_lines(figures_path) - figures_before)
         else:

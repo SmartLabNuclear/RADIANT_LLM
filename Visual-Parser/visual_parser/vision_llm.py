@@ -27,11 +27,22 @@ import io
 import logging
 import os
 import re
+import threading
 from typing import List, Literal, Optional
 
 from PIL import Image
 
 logger = logging.getLogger(__name__)
+
+# genai.configure() mutates process-global SDK state (unlike the GPT/Ollama
+# paths, which build a fresh, isolated client object per call) -- since
+# figure_describer.py added real thread concurrency, multiple workers could
+# call it at once. In practice every concurrent call in this codebase uses
+# the same api_key, so the race is benign today, but this lock removes it
+# outright rather than relying on that happening to stay true. Only the
+# configure+model-construction step is guarded; the slow generate_content()
+# call itself runs outside the lock so concurrent Gemini calls still overlap.
+_gemini_configure_lock = threading.Lock()
 
 DetailLevel = Literal["low", "high", "auto"]
 ReasoningEffort = Literal["minimal", "none", "low", "medium", "high", "xhigh"]
@@ -115,6 +126,29 @@ def _normalize_reasoning_effort(
 
 
 # ---------------------------------------------------------------------------
+# Shared helpers
+# ---------------------------------------------------------------------------
+
+def _build_image_content(images: List[bytes], prompt: str, detail: DetailLevel = "low") -> list:
+    """
+    Build the multimodal ``content`` list (text block + one image_url block
+    per image) shared by the GPT and Ollama call paths -- both talk to an
+    OpenAI-compatible chat.completions endpoint, just with different base_url.
+    """
+    content: list = [{"type": "text", "text": prompt}]
+    for img_bytes in images:
+        b64 = base64.b64encode(img_bytes).decode("ascii")
+        content.append({
+            "type": "image_url",
+            "image_url": {
+                "url": f"data:image/png;base64,{b64}",
+                "detail": detail,
+            },
+        })
+    return content
+
+
+# ---------------------------------------------------------------------------
 # OpenAI / GPT
 # ---------------------------------------------------------------------------
 
@@ -161,17 +195,7 @@ def call_vision_llm_gpt(
     _conn = resolve_openai_connection()
     client = OpenAI(api_key=api_key, base_url=_conn["base_url"])
 
-    # Build the multimodal message content
-    content = [{"type": "text", "text": prompt}]
-    for img_bytes in images:
-        b64 = base64.b64encode(img_bytes).decode("ascii")
-        content.append({
-            "type": "image_url",
-            "image_url": {
-                "url": f"data:image/png;base64,{b64}",
-                "detail": detail,
-            },
-        })
+    content = _build_image_content(images, prompt, detail)
 
     # Build API call kwargs. model_prefix (if any) is applied only here, not
     # to `model` itself -- every capability check above/below must keep
@@ -235,8 +259,9 @@ def call_vision_llm_gemini(
     if not api_key:
         raise RuntimeError("Gemini API key is not set.")
 
-    genai.configure(api_key=api_key)
-    vision_model = genai.GenerativeModel(model)
+    with _gemini_configure_lock:
+        genai.configure(api_key=api_key)
+        vision_model = genai.GenerativeModel(model)
 
     pil_images = [Image.open(io.BytesIO(b)).convert("RGB") for b in images]
     logger.info("[GEMINI] Using model=%s", model)
@@ -246,6 +271,67 @@ def call_vision_llm_gemini(
         return response.text
     except Exception as exc:
         raise RuntimeError(f"Gemini vision call failed (model={model}): {exc}") from exc
+
+
+# ---------------------------------------------------------------------------
+# Local Ollama
+# ---------------------------------------------------------------------------
+
+def call_vision_llm_ollama(
+    images: List[bytes],
+    prompt: str,
+    model: str,
+    detail: DetailLevel = "low",
+) -> str:
+    """
+    Send *images* (PNG bytes) and *prompt* to a local vision-capable model
+    served by Ollama, via its OpenAI-compatible endpoint. No API key needed --
+    Ollama ignores the dummy key the OpenAI client still requires to be
+    non-empty (same convention as RADIANT-LLM's build_ollama_chat_openai()).
+    No reasoning_effort/``-chat-latest`` handling here -- that's GPT-5.x
+    model-family logic, not relevant to a locally-served model.
+
+    Args:
+        images: List of raw PNG byte strings.
+        prompt: Text instruction for the model.
+        model:  Ollama model tag (e.g. "qwen2.5-vl:32b").
+        detail: Image detail hint forwarded in the image_url block, same as
+                the GPT path -- whether a given Ollama-served model honors it
+                is up to that model/Ollama's own handling, not this wrapper.
+
+    Returns:
+        Model response as a plain string.
+    """
+    try:
+        from openai import OpenAI
+    except ImportError as exc:
+        raise RuntimeError("openai package not installed. Run: pip install openai") from exc
+
+    from visual_parser.ollama_local import resolve_ollama_base_url
+    base_url = resolve_ollama_base_url()
+    if not base_url:
+        raise RuntimeError(
+            "Ollama is not reachable (checked OLLAMA_BASE_URL, localhost:11434, "
+            "and host.docker.internal:11434). Is it running?"
+        )
+
+    # Local CPU-bound inference has no SLA the way cloud APIs do, so the SDK's
+    # cloud-oriented 600s default doesn't fit here. Scale with image count --
+    # more context pages means proportionally more vision-encoding + generation
+    # work: 10 min for a single image, +2.5 min per additional image (15 min at
+    # the 3-image case from --vision-context-pages 1).
+    timeout_seconds = 600.0 + (len(images) - 1) * 150.0
+    client = OpenAI(api_key="ollama", base_url=base_url, timeout=timeout_seconds)
+    content = _build_image_content(images, prompt, detail)
+
+    try:
+        response = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": content}],
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as exc:
+        raise RuntimeError(f"Ollama vision call failed (model={model}): {exc}") from exc
 
 
 # ---------------------------------------------------------------------------
@@ -270,19 +356,35 @@ def call_vision_llm(
     Args:
         images:           List of raw PNG byte strings.
         prompt:           Text instruction for the model.
-        provider:         ``'gpt'`` or ``'gemini'``.
-        api_key:          API key for the chosen provider.
+        provider:         ``'gpt'``, ``'gemini'``, or ``'ollama'``.
+        api_key:          API key for the chosen provider (unused for ollama).
         model:            Model name string.
-        detail:           Image detail level (GPT only; ignored for Gemini).
+        detail:           Image detail level. Forwarded to GPT and Ollama;
+                          ignored for Gemini (no equivalent in its API).
         reasoning_effort: Reasoning depth for GPT-5.x (ignored for older GPT
-                          models and all Gemini models).
+                          models and all Gemini/Ollama models).
 
     Returns:
         Model response as a plain string.
     """
-    resolved_model = model or (
-        LATEST_GPT_MODEL if provider == "gpt" else LATEST_GEMINI_MODEL
-    )
+    if model:
+        resolved_model = model
+    elif provider == "gpt":
+        resolved_model = LATEST_GPT_MODEL
+    elif provider == "gemini":
+        resolved_model = LATEST_GEMINI_MODEL
+    elif provider == "ollama":
+        # No static default makes sense for "ollama" -- local availability is
+        # machine-specific. Callers should resolve a model via
+        # ollama_local.select_best_vision_model() before reaching here.
+        raise RuntimeError(
+            "No vision model specified for provider='ollama'. Call "
+            "ollama_local.select_best_vision_model() first, or pass an explicit model."
+        )
+    else:
+        raise RuntimeError(
+            f"Unknown vision provider: {provider!r}. Must be 'gpt', 'gemini', or 'ollama'."
+        )
 
     if provider == "gpt":
         return call_vision_llm_gpt(
@@ -293,7 +395,9 @@ def call_vision_llm(
         )
     if provider == "gemini":
         return call_vision_llm_gemini(images, prompt, api_key, model=resolved_model)
+    if provider == "ollama":
+        return call_vision_llm_ollama(images, prompt, model=resolved_model, detail=detail)
 
     raise RuntimeError(
-        f"Unknown vision provider: {provider!r}. Must be 'gpt' or 'gemini'."
+        f"Unknown vision provider: {provider!r}. Must be 'gpt', 'gemini', or 'ollama'."
     )

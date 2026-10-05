@@ -50,7 +50,7 @@ lightweight – PyMuPDF text layer + PyPDFLoader fallback (fast, digital PDFs)
 # ---------------------------------------------------------------------------
 # Vision-LLM providers
 # ---------------------------------------------------------------------------
-VisionProvider = Literal["gpt", "gemini"]
+VisionProvider = Literal["gpt", "gemini", "ollama"]
 
 
 @dataclass
@@ -87,7 +87,7 @@ class ParserConfig:
 
     # --- Vision LLM ----------------------------------------------------------
     vision_provider: VisionProvider = "gpt"
-    """Which vision LLM to use for figure descriptions and metadata ('gpt' or 'gemini')."""
+    """Which vision LLM to use for figure descriptions and metadata ('gpt', 'gemini', or 'ollama')."""
 
     # OpenAI (falls back to Portkey when OPENAI_API_KEY is absent -- see
     # openai_gateway.resolve_openai_connection(); base_url/model_prefix are
@@ -106,6 +106,12 @@ class ParserConfig:
     gemini_vision_model: str = "gemini-3.8-flash"
     """Latest Gemini vision model.  Also accepts: gemini-3.1-pro-preview, gemini-2.5-flash"""
 
+    # Local Ollama -- empty means auto-select the largest vision-capable
+    # locally-pulled model that fits in currently-free VRAM (see
+    # ollama_local.select_best_vision_model()). No API key needed.
+    ollama_vision_model: str = ""
+    """Ollama model tag to use for vision calls. Empty = auto-select based on free VRAM."""
+
     # --- Vision detail -------------------------------------------------------
     vision_detail: Literal["low", "high", "auto"] = "low"
     """
@@ -117,6 +123,15 @@ class ParserConfig:
     # --- Metadata extraction -------------------------------------------------
     metadata_pages: int = 2
     """Number of front pages to send to the vision LLM for metadata extraction."""
+
+    # --- Figure-description context -------------------------------------------
+    vision_context_pages: int = 0
+    """
+    Number of adjacent pages (before and after) to include as context when
+    describing a page's figures. 0 (default) = today's single-page behavior,
+    unchanged. >0 helps with figures/captions that span a page break, at the
+    cost of more tokens (hence latency/cost) per vision-LLM call.
+    """
 
     # --- Parallelism ---------------------------------------------------------
     max_workers: int = 4
@@ -155,8 +170,10 @@ class ParserConfig:
             gpt_reasoning_effort = os.getenv("VISUAL_PARSER_GPT_REASONING_EFFORT", "medium"),
             gemini_api_key       = os.getenv("GEMINI_API_KEY", ""),
             gemini_vision_model  = os.getenv("VISUAL_PARSER_GEMINI_VISION_MODEL", "gemini-3.8-flash"),
+            ollama_vision_model  = os.getenv("VISUAL_PARSER_OLLAMA_VISION_MODEL", ""),
             vision_detail        = os.getenv("VISUAL_PARSER_VISION_DETAIL", "low"),          # type: ignore[arg-type]
             metadata_pages       = int(os.getenv("VISUAL_PARSER_METADATA_PAGES", "2")),
+            vision_context_pages = int(os.getenv("VISUAL_PARSER_VISION_CONTEXT_PAGES", "0")),
             max_workers          = int(os.getenv("VISUAL_PARSER_MAX_WORKERS", "4")),
             rebuild              = os.getenv("VISUAL_PARSER_REBUILD", "false").lower() == "true",
             skip_text            = os.getenv("VISUAL_PARSER_SKIP_TEXT", "false").lower() == "true",
@@ -175,9 +192,19 @@ class ParserConfig:
             raise ValueError(f"input_dir does not exist: {self.input_dir!r}")
         if self.text_mode not in ("nougat", "lightweight"):
             raise ValueError(f"text_mode must be 'nougat' or 'lightweight', got {self.text_mode!r}")
-        if self.vision_provider not in ("gpt", "gemini"):
-            raise ValueError(f"vision_provider must be 'gpt' or 'gemini', got {self.vision_provider!r}")
+        if self.vision_provider not in ("gpt", "gemini", "ollama"):
+            raise ValueError(f"vision_provider must be 'gpt', 'gemini', or 'ollama', got {self.vision_provider!r}")
         if self.vision_provider == "gpt" and not self.openai_api_key:
             raise ValueError("OPENAI_API_KEY must be set when vision_provider='gpt'.")
         if self.vision_provider == "gemini" and not self.gemini_api_key:
             raise ValueError("GEMINI_API_KEY must be set when vision_provider='gemini'.")
+        # 'ollama' needs no API key -- reachability/model auto-selection is
+        # resolved lazily in pipeline.py, not here, since it requires a
+        # network call this otherwise-pure validate() deliberately avoids.
+        if self.vision_context_pages < 0:
+            raise ValueError(
+                f"vision_context_pages must be >= 0, got {self.vision_context_pages!r}. "
+                "Negative values produce wrong page-window slicing in figure_describer.py."
+            )
+        if self.max_workers < 1:
+            raise ValueError(f"max_workers must be >= 1, got {self.max_workers!r}.")

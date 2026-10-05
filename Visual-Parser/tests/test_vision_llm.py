@@ -129,3 +129,98 @@ def test_call_vision_llm_gpt_uses_temperature_zero_for_older_model(monkeypatch):
     kwargs = fake_client.chat.completions.captured_kwargs
     assert kwargs["temperature"] == 0
     assert "reasoning_effort" not in kwargs
+
+
+def _patch_ollama_client(monkeypatch, base_url="http://localhost:11434/v1"):
+    monkeypatch.setattr("visual_parser.ollama_local.resolve_ollama_base_url", lambda: base_url)
+    fake_client = _FakeOpenAIClient(api_key="ollama", base_url=base_url)
+    captured_init_kwargs = {}
+
+    def fake_openai_ctor(api_key, base_url, timeout):
+        captured_init_kwargs["timeout"] = timeout
+        return fake_client
+
+    monkeypatch.setattr("openai.OpenAI", fake_openai_ctor)
+    return fake_client, captured_init_kwargs
+
+
+def test_call_vision_llm_ollama_sends_images_and_prompt(monkeypatch):
+    fake_client, _init_kwargs = _patch_ollama_client(monkeypatch)
+    result = vision_llm.call_vision_llm_ollama(
+        images=[b"fake-png-bytes"],
+        prompt="describe",
+        model="qwen2.5-vl:32b",
+    )
+    assert result == "described"
+    kwargs = fake_client.chat.completions.captured_kwargs
+    assert kwargs["model"] == "qwen2.5-vl:32b"
+    assert "reasoning_effort" not in kwargs
+    assert "temperature" not in kwargs  # no GPT-5.x-specific handling for local models
+
+
+def test_call_vision_llm_ollama_raises_when_unreachable(monkeypatch):
+    monkeypatch.setattr("visual_parser.ollama_local.resolve_ollama_base_url", lambda: None)
+    with pytest.raises(RuntimeError, match="not reachable"):
+        vision_llm.call_vision_llm_ollama(images=[b"x"], prompt="describe", model="llava")
+
+
+@pytest.mark.parametrize("image_count,expected_timeout", [(1, 600.0), (2, 750.0), (3, 900.0)])
+def test_call_vision_llm_ollama_scales_timeout_with_image_count(monkeypatch, image_count, expected_timeout):
+    _fake_client, init_kwargs = _patch_ollama_client(monkeypatch)
+    vision_llm.call_vision_llm_ollama(
+        images=[b"fake-png-bytes"] * image_count,
+        prompt="describe",
+        model="qwen2.5-vl:32b",
+    )
+    assert init_kwargs["timeout"] == expected_timeout
+
+
+def test_dispatcher_routes_ollama_provider(monkeypatch):
+    fake_client, _init_kwargs = _patch_ollama_client(monkeypatch)
+    result = vision_llm.call_vision_llm(
+        images=[b"fake-png-bytes"],
+        prompt="describe",
+        provider="ollama",
+        api_key="",
+        model="llava:13b",
+    )
+    assert result == "described"
+    assert fake_client.chat.completions.captured_kwargs["model"] == "llava:13b"
+
+
+def test_call_vision_llm_ollama_forwards_detail(monkeypatch):
+    fake_client, _init_kwargs = _patch_ollama_client(monkeypatch)
+    vision_llm.call_vision_llm_ollama(
+        images=[b"fake-png-bytes"], prompt="describe", model="llava:13b", detail="high",
+    )
+    content = fake_client.chat.completions.captured_kwargs["messages"][0]["content"]
+    image_block = next(c for c in content if c["type"] == "image_url")
+    assert image_block["image_url"]["detail"] == "high"
+
+
+def test_dispatcher_forwards_detail_to_ollama(monkeypatch):
+    fake_client, _init_kwargs = _patch_ollama_client(monkeypatch)
+    vision_llm.call_vision_llm(
+        images=[b"fake-png-bytes"], prompt="describe", provider="ollama",
+        api_key="", model="llava:13b", detail="high",
+    )
+    content = fake_client.chat.completions.captured_kwargs["messages"][0]["content"]
+    image_block = next(c for c in content if c["type"] == "image_url")
+    assert image_block["image_url"]["detail"] == "high"
+
+
+def test_dispatcher_raises_unknown_provider_error_not_ollama_error_when_provider_is_bad():
+    """Regression test: an unrecognized provider string with no model given
+    must report the real 'unknown provider' error, not be misattributed to
+    the ollama-specific 'no model specified' error."""
+    with pytest.raises(RuntimeError, match="Unknown vision provider"):
+        vision_llm.call_vision_llm(
+            images=[b"x"], prompt="describe", provider="typo-provider", api_key="", model="",
+        )
+
+
+def test_dispatcher_raises_when_ollama_has_no_model_and_none_given():
+    with pytest.raises(RuntimeError, match="select_best_vision_model"):
+        vision_llm.call_vision_llm(
+            images=[b"x"], prompt="describe", provider="ollama", api_key="", model="",
+        )

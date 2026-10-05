@@ -28,10 +28,18 @@ def test_from_env_reads_overrides(monkeypatch):
     monkeypatch.setenv("VISUAL_PARSER_CHUNK_SIZE", "777")
     monkeypatch.setenv("VISUAL_PARSER_REBUILD", "true")
     monkeypatch.setenv("VISUAL_PARSER_SKIP_TEXT", "false")
+    monkeypatch.setenv("VISUAL_PARSER_VISION_CONTEXT_PAGES", "2")
     config = ParserConfig.from_env()
     assert config.chunk_size == 777
     assert config.rebuild is True
     assert config.skip_text is False
+    assert config.vision_context_pages == 2
+
+
+def test_vision_context_pages_defaults_to_zero(monkeypatch):
+    monkeypatch.delenv("VISUAL_PARSER_VISION_CONTEXT_PAGES", raising=False)
+    assert ParserConfig.from_env().vision_context_pages == 0
+    assert ParserConfig(input_dir=".").vision_context_pages == 0
 
 
 def test_effective_output_dir_falls_back_to_input_dir():
@@ -86,3 +94,24 @@ def test_validate_requires_gemini_key_for_gemini(tmp_path):
 def test_validate_passes_with_gpt_key(tmp_path):
     config = ParserConfig(input_dir=str(tmp_path), vision_provider="gpt", openai_api_key="sk-test")
     config.validate()  # should not raise
+
+
+def test_validate_rejects_negative_vision_context_pages(tmp_path):
+    config = ParserConfig(
+        input_dir=str(tmp_path), vision_provider="gpt", openai_api_key="sk-test", vision_context_pages=-1
+    )
+    with pytest.raises(ValueError, match="vision_context_pages"):
+        config.validate()
+
+
+def test_validate_rejects_non_positive_max_workers(tmp_path):
+    config = ParserConfig(input_dir=str(tmp_path), vision_provider="gpt", openai_api_key="sk-test", max_workers=0)
+    with pytest.raises(ValueError, match="max_workers"):
+        config.validate()
+
+
+def test_validate_passes_for_ollama_with_no_key_required(tmp_path):
+    config = ParserConfig(
+        input_dir=str(tmp_path), vision_provider="ollama", openai_api_key="", gemini_api_key=""
+    )
+    config.validate()  # should not raise -- no API key needed for ollama

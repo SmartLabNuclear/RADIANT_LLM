@@ -80,6 +80,39 @@ FIGURE_PROMPT: str = (
     "]"
 )
 
+
+def build_figure_prompt_with_context(base_prompt: str, target_image_index: int, total_images: int) -> str:
+    """
+    Prepend a multi-image framing preamble to *base_prompt* when adjacent
+    pages are included as context (--vision-context-pages > 0). Images are
+    always sent in page order; target_image_index (0-based) identifies which
+    one is the page to actually describe -- the rest are context only, used
+    solely to correctly interpret a figure or caption that continues onto/from
+    the target page. Only figures primarily on the target page should be
+    described; figures that belong entirely to a context page are already
+    covered by that page's own call and must not be duplicated here.
+
+    When total_images == 1 (context_pages == 0), this returns base_prompt
+    unchanged -- today's single-page behavior is untouched, and this composes
+    correctly whether base_prompt is the default FIGURE_PROMPT or a caller's
+    custom override.
+    """
+    if total_images <= 1:
+        return base_prompt
+
+    preamble = (
+        f"You are shown {total_images} consecutive pages from a technical document, "
+        f"in page order (image 1 = earliest page shown). "
+        f"**Image {target_image_index + 1} of {total_images} is the TARGET page** -- "
+        "describe figures from this page only. "
+        "The other image(s) are provided solely as context, to help you correctly "
+        "interpret a figure, diagram, or caption that continues onto or from the "
+        "target page. Do NOT generate descriptions for figures that belong entirely "
+        "to a context page -- that page has its own separate call covering it.\n\n"
+    )
+    return preamble + base_prompt
+
+
 # ---------------------------------------------------------------------------
 # Metadata extraction prompt
 # ---------------------------------------------------------------------------

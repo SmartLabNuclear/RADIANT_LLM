@@ -24,6 +24,9 @@ openai>=1.14.0
 # Vision LLM — Google Gemini
 google-generativeai>=0.5.0
 
+# Vision LLM — local Ollama (model listing, capability detection)
+requests>=2.31.0
+
 # Environment / config
 python-dotenv>=1.0.0
 

@@ -113,11 +113,14 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     vision_group = p.add_argument_group("Vision LLM (figure descriptions & metadata)")
     vision_group.add_argument(
         "--vision-provider",
-        choices=["gpt", "gemini"],
+        choices=["gpt", "gemini", "ollama"],
         default="gpt",
         help=(
             "gpt    — OpenAI GPT-5.4  (set OPENAI_API_KEY in .env).\n"
-            "gemini — Google Gemini   (set GEMINI_API_KEY in .env)."
+            "gemini — Google Gemini   (set GEMINI_API_KEY in .env).\n"
+            "ollama — Local model served by Ollama. No API key needed. Omit "
+            "--vision-model to auto-select the largest locally-pulled "
+            "vision-capable model that fits in free VRAM."
         ),
     )
     vision_group.add_argument(
@@ -125,9 +128,22 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="MODEL_NAME",
         help=(
-            "Vision model name. Omit to use the latest for each provider:\n"
+            "Vision model name. Omit to use the latest for each provider\n"
+            "(ollama: auto-selected based on free VRAM — see --vision-provider):\n"
             "  gpt    → gpt-5.4            (also: gpt-6-luna, gpt-6-sol, gpt-5.5, gpt-5.2, gpt-5.1, gpt-5, gpt-4o, gpt-4.1)\n"
             "  gemini → gemini-3.8-flash   (also: gemini-3.1-pro-preview, gemini-2.5-flash)"
+        ),
+    )
+    vision_group.add_argument(
+        "--vision-context-pages",
+        type=int,
+        default=0,
+        metavar="N",
+        help=(
+            "Include N adjacent pages (before and after) as context in each "
+            "figure-description call, to help with figures/captions that span "
+            "a page break (default: 0 = single page, unchanged behavior). "
+            "More images per call means more tokens, hence more latency/cost."
         ),
     )
     vision_group.add_argument(
@@ -258,6 +274,30 @@ def _print_available_models() -> int:
             print("  (none found -- check GEMINI_API_KEY is valid)")
         print()
 
+    from visual_parser.ollama_local import (
+        list_vision_capable_models,
+        resolve_ollama_base_url,
+        select_best_vision_model,
+    )
+
+    if resolve_ollama_base_url():
+        ollama_models = list_vision_capable_models()
+        print("ollama (local) -- vision-capable, currently pulled:")
+        if ollama_models:
+            for m in ollama_models:
+                print(f"  {m.label}")
+            # Calls the real selection function rather than reimplementing
+            # its VRAM-budget math here, so this preview can't silently drift
+            # from what auto-selection actually picks at runtime.
+            try:
+                best = select_best_vision_model()
+                print(f"  -> auto-select would currently pick: {best}")
+            except RuntimeError as exc:
+                print(f"  -> auto-select would currently fail: {exc}")
+        else:
+            print("  (none found -- pull one, e.g.: ollama pull llava)")
+        print()
+
     print("Pass one of the above to --vision-model (with the matching --vision-provider).")
     return 0
 
@@ -278,8 +318,11 @@ def main(argv=None) -> int:
     if not args.input_dir:
         parser.error("--input-dir is required (unless --list-models is given).")
 
-    # Default vision model per provider when not explicitly set
-    if args.vision_model is None:
+    # Default vision model per provider when not explicitly set. For
+    # "ollama", leaving this None/empty is what triggers VRAM-aware
+    # auto-selection in pipeline.py -- there's no sensible hardcoded default,
+    # since local availability is machine-specific.
+    if args.vision_model is None and args.vision_provider != "ollama":
         args.vision_model = (
             "gpt-5.4" if args.vision_provider == "gpt" else "gemini-3.8-flash"
         )
@@ -296,9 +339,11 @@ def main(argv=None) -> int:
         vision_provider       = args.vision_provider,
         gpt_vision_model      = args.vision_model if args.vision_provider == "gpt"    else "gpt-5.4",
         gemini_vision_model   = args.vision_model if args.vision_provider == "gemini" else "gemini-3.8-flash",
+        ollama_vision_model   = args.vision_model if args.vision_provider == "ollama" and args.vision_model else "",
         gpt_reasoning_effort  = args.reasoning_effort,
         vision_detail         = args.vision_detail,
         metadata_pages        = args.metadata_pages,
+        vision_context_pages  = args.vision_context_pages,
         max_workers           = args.max_workers,
         rebuild               = args.rebuild,
         skip_text             = args.skip_text,
@@ -312,5 +357,10 @@ def main(argv=None) -> int:
         return 1
 
     from visual_parser.pipeline import run_pipeline
-    run_pipeline(config)
+
+    try:
+        run_pipeline(config)
+    except RuntimeError as exc:
+        print(f"[ERROR] {exc}", file=sys.stderr)
+        return 1
     return 0
