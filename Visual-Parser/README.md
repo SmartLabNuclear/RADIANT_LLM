@@ -218,6 +218,7 @@ Text extraction:
 - `--nougat-model facebook/nougat-small`
 - `--chunk-size 500`
 - `--chunk-overlap 100`
+- `--nougat-crop-margin` (off by default — lets Nougat autocrop whitespace margins instead of this package's long-standing uncropped behavior; autocropping can silently crop into real content on unusual page layouts)
 
 Vision LLM:
 - `--vision-provider gpt|gemini|ollama` (default: `gpt`) — see [Local Ollama vision provider](#local-ollama-vision-provider) for the `ollama` option
