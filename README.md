@@ -25,7 +25,7 @@
 
 RADIANT-LLM (**R**etrieval-augmented **D**omain-intelligent assistant for **A**dvanced **N**uclear **T**echnologies) is a local-first, model-agnostic Visual-RAG (visual retrieval-augmented generation) system for secure, document-grounded assistance in Nuclear Science and Engineering (NSE). It combines multi-modal ingestion (text plus visual context) with a structured knowledge base to enable page- and figure-level retrieval from complex technical documents with auditable, citation-backed responses, while respecting privacy/security constraints by keeping data processing local and emphasizing auditable, citation-traceable outputs.
 
-This repository also includes [`Visual-Parser`](Visual-Parser/README.md), a standalone PDF ingestion tool for generating JSONL knowledge bases from curated documents. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
+This repository also includes [`Visual-Parser`](Visual-Parser/README.md), a standalone PDF-and-image ingestion tool for generating JSONL knowledge bases from curated documents and standalone images. It is available on PyPI at https://pypi.org/project/visual-parser/ and can be used independently of the RADIANT-LLM chat UI.
 
 ## Table of Contents
 
@@ -33,7 +33,7 @@ This repository also includes [`Visual-Parser`](Visual-Parser/README.md), a stan
 - [Highlights of the Results](#highlights-of-the-results)
 - [LearningCenter](#learningcenter)
 - [Evaluation Materials](#evaluation-materials)
-- [Standalone PDF Ingestion: visual-parser](#standalone-pdf-ingestion-visual-parser)
+- [Standalone PDF and Image Ingestion: visual-parser](#standalone-pdf-and-image-ingestion-visual-parser)
 - [Part 1: Prerequisites](#part-1-prerequisites)
 - [Part 2: Prepare Your Local Directory](#part-2-prepare-your-local-directory)
 - [Part 3: Run RADIANT-LLM](#part-3-run-radiant-llm)
@@ -103,9 +103,9 @@ The evaluation package in [`radiant-llm-evaluation/`](radiant-llm-evaluation/) i
 
 ---
 
-## Standalone PDF ingestion: `visual-parser`
+## Standalone PDF and image ingestion: `visual-parser`
 
-This repo also includes `visual-parser`, a standalone PDF ingestion tool that accelerates document processing by generating JSONL knowledge bases (text chunks + figure descriptions + metadata) from curated PDFs. You can run `visual-parser` first to build a high-fidelity, multi-modal KB, then run RADIANT-LLM Visual-RAG for QA over that KB.
+This repo also includes `visual-parser`, a standalone PDF-and-image ingestion tool that accelerates document processing by generating JSONL knowledge bases (text chunks + figure descriptions + standalone image descriptions + metadata) from curated PDFs and images. You can run `visual-parser` first to build a high-fidelity, multi-modal KB, then run RADIANT-LLM Visual-RAG for QA over that KB.
 
 The standalone `visual-parser` package is included in this repository and is covered by the same Apache License 2.0 used across the codebase. See [`Visual-Parser/README.md`](Visual-Parser/README.md) for package-specific usage details.
 
@@ -159,7 +159,7 @@ Prebuilt images are published on Docker Hub: **[zev94/radiant-llm](https://hub.d
 - `zev94/radiant-llm:latest` — the rolling tag, always the newest build.
 - `zev94/radiant-llm:YYYY-MM-DD` — planned convention for dated snapshots pushed alongside future `:latest` updates, for pinning to a specific known build. See the [full tag list](https://hub.docker.com/r/zev94/radiant-llm/tags) for available tags.
 
-**visual-parser (standalone PDF ingestion):**
+**visual-parser (standalone PDF and image ingestion):**
 - `zev94/radiant-llm:visual-parser-1.0.2` — pinned release.
 - `zev94/radiant-llm:visual-parser-latest` — rolling tag, always the newest build.
 
@@ -367,7 +367,7 @@ If you mounted a larger host data root, set the working directory to a subfolder
 
 If the UI auto-fills the **user_skills** field, keep it on a writable path under `/host` such as `/host/user_skills`. You only need to change that field if you intentionally mounted a different writable skills location.
 
-**Pull and run visual-parser (optional)** — build a multi-modal JSONL knowledge base before or alongside RADIANT-LLM QA. See [`Visual-Parser/README.md`](Visual-Parser/README.md) for CLI flags.
+**Pull and run visual-parser (optional)** — build a multi-modal JSONL knowledge base (PDFs and/or standalone images) before or alongside RADIANT-LLM QA. See [`Visual-Parser/README.md`](Visual-Parser/README.md) for CLI flags.
 
 ```bash
 docker pull zev94/radiant-llm:visual-parser-latest

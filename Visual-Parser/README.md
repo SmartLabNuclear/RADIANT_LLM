@@ -1,13 +1,13 @@
-# visual-parser (Standalone Visual-RAG PDF Ingestion)
+# visual-parser (Standalone Visual-RAG PDF & Image Ingestion)
 
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.1%2B-ee4c2c.svg)
 ![LangChain](https://img.shields.io/badge/LangChain-0.1%2B-1C3C3C.svg)
 ![CUDA](https://img.shields.io/badge/CUDA-optional-76B900.svg)
 
-`visual-parser` converts PDFs (and standalone images alongside them) into a multi-modal JSONL knowledge base (text chunks, figure descriptions, standalone image descriptions, metadata). It was extracted from [RADIANT-LLM](https://github.com/SmartLabNuclear/RADIANT_LLM) as a standalone PDF-ingestion tool, independent of any chatbot.
+`visual-parser` converts PDFs (and standalone images alongside them) into a multi-modal JSONL knowledge base (text chunks, figure descriptions, standalone image descriptions, metadata). It was extracted from [RADIANT-LLM](https://github.com/SmartLabNuclear/RADIANT_LLM) as a standalone PDF-and-image ingestion tool, independent of any chatbot.
 
-1) Run `visual-parser` on curated PDFs to generate JSONL KB files.
+1) Run `visual-parser` on a directory of curated PDFs and/or standalone images to generate JSONL KB files.
 2) Point any downstream RAG system at the generated KB — RADIANT-LLM, AutoSAM, and AutoFLUKA all consume the identical JSONL/registry format, so the same KB works with any of them without re-parsing.
 
 ## Table of Contents

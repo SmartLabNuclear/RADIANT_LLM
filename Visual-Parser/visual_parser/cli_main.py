@@ -1,5 +1,5 @@
 """
-cli_main.py - ASCII-safe CLI entry point for the Visual-RAG PDF Parser.
+cli_main.py - ASCII-safe CLI entry point for the Visual-RAG PDF & Image Parser.
 
 This module exists to keep Windows console help output stable for the
 installed ``visual-parser`` command and ``python -m visual_parser``.
@@ -42,7 +42,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="visual-parser",
         description=(
-            "Visual-RAG PDF Parser - detects new PDFs and standalone images, "
+            "Visual-RAG PDF & Image Parser - detects new PDFs and standalone images, "
             "extracts text and figure/image descriptions, and writes JSONL "
             "knowledge bases:\n"
             "  01_chunks_kb.jsonl       text chunks\n"

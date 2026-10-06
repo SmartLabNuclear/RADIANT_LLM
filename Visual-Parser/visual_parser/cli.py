@@ -44,7 +44,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="visual-parser",
         description=(
-            "Visual-RAG PDF Parser — detects new PDFs and standalone images, "
+            "Visual-RAG PDF & Image Parser — detects new PDFs and standalone images, "
             "extracts text and figure/image descriptions, and writes JSONL "
             "knowledge bases:\n"
             "  01_chunks_kb.jsonl       text chunks\n"

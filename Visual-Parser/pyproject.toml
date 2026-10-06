@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "visual-parser"
 version = "2.2.2"
-description = "Standalone Visual-RAG PDF Parser - text extraction and Vision-LLM figure descriptions to JSONL"
+description = "Standalone Visual-RAG PDF & Image Parser - text extraction and Vision-LLM figure/image descriptions to JSONL"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
@@ -17,7 +17,7 @@ authors = [
 ]
 
 keywords = [
-    "pdf", "rag", "nougat", "vision-llm", "ocr",
+    "pdf", "image", "rag", "nougat", "vision-llm", "ocr",
     "document-parsing", "jsonl", "knowledge-base",
 ]
 
