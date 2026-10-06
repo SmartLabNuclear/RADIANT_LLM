@@ -79,6 +79,14 @@ class ParserConfig:
     nougat_model: str = "facebook/nougat-small"
     """HuggingFace model identifier for Nougat."""
 
+    nougat_crop_margin: bool = False
+    """
+    Passed through to Nougat's image processor as do_crop_margin. False
+    (default) matches this package's long-standing behavior -- autocropping
+    whitespace margins can silently crop into real content on unusual page
+    layouts. Set True to opt into Nougat's own autocrop behavior instead.
+    """
+
     chunk_size: int = 500
     """Target character count per text chunk."""
 
@@ -186,6 +194,7 @@ class ParserConfig:
             output_dir           = os.getenv("VISUAL_PARSER_OUTPUT_DIR", ""),
             text_mode            = os.getenv("VISUAL_PARSER_TEXT_MODE", "nougat"),           # type: ignore[arg-type]
             nougat_model         = os.getenv("VISUAL_PARSER_NOUGAT_MODEL", "facebook/nougat-small"),
+            nougat_crop_margin   = os.getenv("VISUAL_PARSER_NOUGAT_CROP_MARGIN", "false").lower() == "true",
             chunk_size           = int(os.getenv("VISUAL_PARSER_CHUNK_SIZE", "500")),
             chunk_overlap        = int(os.getenv("VISUAL_PARSER_CHUNK_OVERLAP", "100")),
             vision_provider      = os.getenv("VISUAL_PARSER_VISION_PROVIDER", "gpt"),        # type: ignore[arg-type]

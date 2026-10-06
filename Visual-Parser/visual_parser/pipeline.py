@@ -501,6 +501,7 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                     chunk_size         = config.chunk_size,
                     chunk_overlap      = config.chunk_overlap,
                     max_workers        = config.max_workers,
+                    nougat_crop_margin = config.nougat_crop_margin,
                 )
                 print(nougat_summary)
             except Exception as exc:

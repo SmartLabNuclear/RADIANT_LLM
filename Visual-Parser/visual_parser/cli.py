@@ -111,6 +111,15 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         metavar="N",
         help="Overlap characters between adjacent chunks (default: 100).",
     )
+    text_group.add_argument(
+        "--nougat-crop-margin",
+        action="store_true",
+        help=(
+            "Let Nougat autocrop whitespace margins (its own default). "
+            "Off by default -- autocropping can silently crop into real "
+            "content on unusual page layouts."
+        ),
+    )
 
     # ---- Vision LLM ---------------------------------------------------------
     vision_group = p.add_argument_group("Vision LLM (figure descriptions & metadata)")
@@ -366,6 +375,7 @@ def main(argv=None) -> int:
         nougat_model          = args.nougat_model,
         chunk_size            = args.chunk_size,
         chunk_overlap         = args.chunk_overlap,
+        nougat_crop_margin    = args.nougat_crop_margin,
         vision_provider       = args.vision_provider,
         gpt_vision_model      = args.vision_model if args.vision_provider == "gpt"    else "gpt-5.4",
         gemini_vision_model   = args.vision_model if args.vision_provider == "gemini" else "gemini-3.8-flash",

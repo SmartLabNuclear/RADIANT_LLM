@@ -69,6 +69,7 @@ def nougat_extract_pdfs(
     chunk_size: int = 500,
     chunk_overlap: int = 100,
     max_workers: int = 4,
+    nougat_crop_margin: bool = False,
 ) -> Tuple[str, List[str], List[str], int]:
     """
     Extract text from each PDF in *only_process_these* using the Nougat model,
@@ -83,6 +84,9 @@ def nougat_extract_pdfs(
         chunk_size:         Characters per chunk.
         chunk_overlap:      Overlap between adjacent chunks.
         max_workers:        Thread-pool size for parallel PDF processing.
+        nougat_crop_margin: Passed through to Nougat's image processor as
+                            do_crop_margin (default False -- see
+                            ParserConfig.nougat_crop_margin's docstring).
 
     Always resumes against the 04_processed_pdfs.txt registry -- callers
     that want a PDF reprocessed must first clear its existing chunks and
@@ -124,7 +128,7 @@ def nougat_extract_pdfs(
                     pixel_values = processor(
                         images=image,
                         return_tensors="pt",
-                        do_crop_margin=False,
+                        do_crop_margin=nougat_crop_margin,
                     ).pixel_values.to(device)
                 except TypeError:
                     pixel_values = processor(

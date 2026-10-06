@@ -59,6 +59,20 @@ def test_from_env_reads_redo_names_comma_separated(monkeypatch):
     assert ParserConfig.from_env().redo_names == ["doc1.pdf", "diagram2.png", "doc3.pdf"]
 
 
+def test_nougat_crop_margin_defaults_to_false():
+    assert ParserConfig(input_dir=".").nougat_crop_margin is False
+
+
+def test_from_env_nougat_crop_margin_defaults_to_false(monkeypatch):
+    monkeypatch.delenv("VISUAL_PARSER_NOUGAT_CROP_MARGIN", raising=False)
+    assert ParserConfig.from_env().nougat_crop_margin is False
+
+
+def test_from_env_reads_nougat_crop_margin(monkeypatch):
+    monkeypatch.setenv("VISUAL_PARSER_NOUGAT_CROP_MARGIN", "true")
+    assert ParserConfig.from_env().nougat_crop_margin is True
+
+
 def test_vision_context_pages_defaults_to_zero(monkeypatch):
     monkeypatch.delenv("VISUAL_PARSER_VISION_CONTEXT_PAGES", raising=False)
     assert ParserConfig.from_env().vision_context_pages == 0
