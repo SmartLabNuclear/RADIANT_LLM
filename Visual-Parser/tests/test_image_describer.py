@@ -145,7 +145,7 @@ def test_describe_images_skips_non_string_description(tmp_path, monkeypatch):
     )
 
     assert written == []
-    assert _read_jsonl(tmp_path / "image_descriptions.jsonl") == []
+    assert _read_jsonl(tmp_path / image_describer.IMAGE_DESCRIPTIONS_FILE) == []
 
 
 def test_describe_images_writes_rows_for_each_image(tmp_path, monkeypatch):
@@ -166,7 +166,7 @@ def test_describe_images_writes_rows_for_each_image(tmp_path, monkeypatch):
     )
 
     assert set(written) == {"a.png", "b.png"}
-    rows = _read_jsonl(tmp_path / "image_descriptions.jsonl")
+    rows = _read_jsonl(tmp_path / image_describer.IMAGE_DESCRIPTIONS_FILE)
     assert {r["source"] for r in rows} == {"a.png", "b.png"}
     for row in rows:
         assert row["title"] == "Something"
@@ -195,7 +195,7 @@ def test_failed_image_is_not_marked_written(tmp_path, monkeypatch):
     )
 
     assert written == ["good.png"]
-    rows = _read_jsonl(tmp_path / "image_descriptions.jsonl")
+    rows = _read_jsonl(tmp_path / image_describer.IMAGE_DESCRIPTIONS_FILE)
     assert {r["source"] for r in rows} == {"good.png"}
 
 
@@ -223,7 +223,7 @@ def test_vision_call_exception_is_not_marked_written(tmp_path, monkeypatch):
     )
 
     assert len(written) == 1
-    rows = _read_jsonl(tmp_path / "image_descriptions.jsonl")
+    rows = _read_jsonl(tmp_path / image_describer.IMAGE_DESCRIPTIONS_FILE)
     assert len(rows) == 1
 
 
@@ -231,7 +231,7 @@ def test_resume_skips_already_done_images(tmp_path, monkeypatch):
     img1 = _make_png(tmp_path / "a.png")
     img2 = _make_png(tmp_path / "b.png")
 
-    descriptions_path = tmp_path / "image_descriptions.jsonl"
+    descriptions_path = tmp_path / image_describer.IMAGE_DESCRIPTIONS_FILE
     descriptions_path.write_text(
         json.dumps({"source": "a.png", "image_id": "x", "title": "Old", "description": "already done"}) + "\n",
         encoding="utf-8",

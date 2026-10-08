@@ -7,10 +7,10 @@ describes every figure/chart/schematic and every standalone image using a
 Vision LLM (OpenAI GPT, Google Gemini, or a local model via Ollama), and
 writes JSONL knowledge bases ready for any downstream RAG system:
 
-    01_chunks_kb.jsonl       – text chunks with stable IDs
-    02_visuals_kb.jsonl      – per-figure visual descriptions
-    03_metadata_kb.jsonl     – document-level metadata (title, authors, DOI …)
-    image_descriptions.jsonl – one holistic description per standalone image
+    01_chunks_kb.jsonl          – text chunks with stable IDs
+    02_visuals_kb.jsonl         – per-figure visual descriptions
+    03_metadata_kb.jsonl        – document-level metadata (title, authors, DOI …)
+    image_descriptions_kb.jsonl – one holistic description per standalone image
 
 No chatbot, no vector store, no retrieval – just a robust parser.
 """
@@ -19,4 +19,4 @@ from visual_parser.config import ParserConfig
 from visual_parser.pipeline import run_pipeline
 
 __all__ = ["ParserConfig", "run_pipeline"]
-__version__ = "2.2.2"
+__version__ = "2.2.3"

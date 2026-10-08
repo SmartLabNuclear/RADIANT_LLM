@@ -1,7 +1,7 @@
 # ============================================================
 # visual-parser Dockerfile
 # ============================================================
-# Build:  docker build -t zev94/radiant-llm:visual-parser-2.2.2 .
+# Build:  docker build -t zev94/radiant-llm:visual-parser-2.2.3 .
 #
 # Nougat model is downloaded during build so runs start without re-downloading.
 # (Do not pass secrets via ARG/ENV; they can leak into image history.)

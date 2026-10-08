@@ -45,10 +45,10 @@ def _build_arg_parser() -> argparse.ArgumentParser:
             "Visual-RAG PDF & Image Parser - detects new PDFs and standalone images, "
             "extracts text and figure/image descriptions, and writes JSONL "
             "knowledge bases:\n"
-            "  01_chunks_kb.jsonl       text chunks\n"
-            "  02_visuals_kb.jsonl      PDF figure descriptions\n"
-            "  03_metadata_kb.jsonl     document metadata\n"
-            "  image_descriptions.jsonl standalone image descriptions"
+            "  01_chunks_kb.jsonl            text chunks\n"
+            "  02_visuals_kb.jsonl           PDF figure descriptions\n"
+            "  03_metadata_kb.jsonl          document metadata\n"
+            "  image_descriptions_kb.jsonl   standalone image descriptions"
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=USAGE_EXAMPLES,

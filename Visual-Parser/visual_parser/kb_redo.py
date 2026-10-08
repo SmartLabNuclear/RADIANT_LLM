@@ -14,7 +14,7 @@ dependency-free package and cannot depend on the sibling RADIANT-LLM repo)
 the proven basename-match + backup-once + atomic-rewrite pattern from
 RADIANT-LLM's knowledge_base_sanitizer() (radiant_lmm/RADIANT_LLM_ChatBot_
 Local/utils/pdf_helpers.py:1464-1607), extended to the 4th JSONL file
-(image_descriptions.jsonl) and both registries (04_processed_pdfs.txt,
+(image_descriptions_kb.jsonl) and both registries (04_processed_pdfs.txt,
 parsed_images.txt), which that function never touches at all.
 """
 
@@ -25,6 +25,7 @@ import os
 import shutil
 from typing import Any, Dict, Iterable, List
 
+from visual_parser.image_describer import IMAGE_DESCRIPTIONS_FILE
 from visual_parser.image_tracker import PROCESSED_IMAGES_REGISTRY
 from visual_parser.jsonl_writer import atomic_rewrite_jsonl
 from visual_parser.pdf_tracker import PROCESSED_REGISTRY, load_processed_pdfs, unmark_as_processed
@@ -33,12 +34,16 @@ logger = logging.getLogger(__name__)
 
 # Hardcoded, not glob("*.jsonl") like the RADIANT precedent -- output_dir
 # often equals input_dir (the documented default), so globbing risks
-# touching unrelated JSONL files a user happens to keep there.
+# touching unrelated JSONL files a user happens to keep there. The image
+# filename is imported (not hardcoded like the other three) because it was
+# renamed once already (image_descriptions.jsonl -> image_descriptions_kb.jsonl,
+# 2.2.3) with this exact file as a hardcoded duplicate that needed a manual
+# fix -- importing the constant means it can't drift out of sync again.
 KB_JSONL_FILENAMES = (
     "01_chunks_kb.jsonl",
     "02_visuals_kb.jsonl",
     "03_metadata_kb.jsonl",
-    "image_descriptions.jsonl",
+    IMAGE_DESCRIPTIONS_FILE,
 )
 REGISTRY_FILENAMES = (PROCESSED_REGISTRY, PROCESSED_IMAGES_REGISTRY)
 BACKUP_SUFFIX = "_backup_before_redo"

@@ -29,9 +29,11 @@ By default, the pipeline writes:
 - `01_chunks_kb.jsonl`: chunked text extracted from PDFs (Nougat by default).
 - `02_visuals_kb.jsonl`: figure/page visual descriptions (Vision LLM), one row per figure found in a PDF.
 - `03_metadata_kb.jsonl`: document metadata rows (title/author/etc.).
-- `image_descriptions.jsonl`: one holistic description per **standalone image** file found alongside your PDFs in `--input-dir` (not a PDF's own figures) — auto-detected by extension, no separate flag needed; disable with `--skip-images`.
+- `image_descriptions_kb.jsonl`: one holistic description per **standalone image** file found alongside your PDFs in `--input-dir` (not a PDF's own figures) — auto-detected by extension, no separate flag needed; disable with `--skip-images`.
 
 Alongside the KB, the pipeline also writes bookkeeping files: `04_processed_pdfs.txt` / `parsed_images.txt` (track which PDFs/images have already been processed, so re-runs skip them unless `--rebuild` or `--redo NAME`) and `05_pipeline.log` (run log at the verbosity set by `--log-level`, default `ERROR`).
+
+> **Breaking change in 2.2.3:** the standalone-image KB file was renamed from `image_descriptions.jsonl` to `image_descriptions_kb.jsonl` (matching the `NN_name_kb.jsonl` convention used by the other three KB files). Upgrading from an older version does **not** migrate existing data automatically — the resume check only looks at the new filename, so already-described images in an old `image_descriptions.jsonl` would otherwise appear "new" again and get re-described. If you have existing data, rename the file yourself before re-running: `image_descriptions.jsonl` → `image_descriptions_kb.jsonl`.
 
 ## API Keys (.env)
 

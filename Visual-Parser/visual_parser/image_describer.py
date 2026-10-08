@@ -10,7 +10,7 @@ supplied image files instead of PyMuPDF-rasterized PDF pages.
 
 Output
 ------
-One record per image is appended to ``image_descriptions.jsonl`` in
+One record per image is appended to ``image_descriptions_kb.jsonl`` in
 *output_dir*:
 
     {
@@ -40,7 +40,7 @@ from visual_parser.vision_llm import call_vision_llm
 
 logger = logging.getLogger(__name__)
 
-IMAGE_DESCRIPTIONS_FILE = "image_descriptions.jsonl"
+IMAGE_DESCRIPTIONS_FILE = "image_descriptions_kb.jsonl"
 
 # Decoupled from figure_describer.py's context-window-scaled formula (10 min
 # for 1 image there): IMAGE_DESCRIPTION_PROMPT's "Verbatim Text Content"
@@ -171,7 +171,7 @@ def describe_images(
     """
     For each image in *new_image_paths*, call the Vision LLM once (no
     context window -- a single standalone image per call), parse the
-    description, and append the result to ``image_descriptions.jsonl`` in
+    description, and append the result to ``image_descriptions_kb.jsonl`` in
     *output_dir*.
 
     Returns the basenames actually written a row for -- NOT the full input
@@ -183,7 +183,7 @@ def describe_images(
 
     Args:
         new_image_paths:  Full paths of images to describe.
-        output_dir:       Directory where ``image_descriptions.jsonl`` is written.
+        output_dir:       Directory where ``image_descriptions_kb.jsonl`` is written.
         vision_provider:  ``'gpt'``, ``'gemini'``, or ``'ollama'``.
         vision_api_key:   API key for the chosen provider (unused for ollama).
         vision_model:     Vision model name string.
@@ -191,7 +191,7 @@ def describe_images(
         image_prompt:     The instruction prompt sent with each image.
         max_workers:      Thread-pool size for concurrent vision-LLM calls.
 
-    Always resumes from image_descriptions.jsonl's existing content (via the
+    Always resumes from image_descriptions_kb.jsonl's existing content (via the
     done_images set below) -- callers that want an image redescribed must
     first remove its existing row and its basename from the processed-
     images registry (see kb_redo.redo_entries()), then pass it in here as if

@@ -14,7 +14,7 @@ def test_figure_prompt_instructs_verbatim_table_transcription():
 def test_figure_prompt_and_image_prompt_use_matching_discrepancy_terminology():
     """Regression test: the two prompts' final heading must use the same
     label and boilerplate 'nothing found' phrase, so the two JSONL outputs
-    (02_visuals_kb.jsonl / image_descriptions.jsonl) don't drift into
+    (02_visuals_kb.jsonl / image_descriptions_kb.jsonl) don't drift into
     inconsistent wording for the same underlying concept."""
     assert "**Discrepancy Check**" in FIGURE_PROMPT
     assert "No discrepancies detected" in FIGURE_PROMPT
