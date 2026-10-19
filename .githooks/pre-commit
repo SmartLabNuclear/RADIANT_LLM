@@ -1,0 +1,32 @@
+#!/bin/sh
+# Blocks a commit that edits radiant_llm_skills/ without also
+# regenerating MANIFEST.json for it. See radiant_llm_skills/SKILL_POLICY.md,
+# "Bundle version & license", and maintenance_scripts/check_skill_manifest_freshness.py.
+#
+# One-time setup (per clone): git config core.hooksPath .githooks
+
+repo_root=$(git rev-parse --show-toplevel) || exit 0
+skills_root="$repo_root/radiant_llm_skills"
+checker="$repo_root/maintenance_scripts/check_skill_manifest_freshness.py"
+
+touches_skills=$(git diff --cached --name-only --diff-filter=ACMR -- "radiant_llm_skills/")
+if [ -z "$touches_skills" ]; then
+    exit 0
+fi
+
+if [ ! -f "$checker" ]; then
+    echo "[pre-commit] warning: checker script not found at $checker -- skipping manifest-freshness check" >&2
+    exit 0
+fi
+
+python "$checker" --root "$skills_root"
+status=$?
+
+if [ "$status" -ne 0 ]; then
+    echo "" >&2
+    echo "[pre-commit] blocked: radiant_llm_skills/ changed but MANIFEST.json wasn't regenerated to match." >&2
+    echo "[pre-commit] run: python maintenance_scripts/generate_skill_manifest.py" >&2
+    exit 1
+fi
+
+exit 0

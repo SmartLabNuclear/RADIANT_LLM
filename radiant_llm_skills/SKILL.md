@@ -1,5 +1,7 @@
 # RADIANT Skill Policy
 
+**Bundle build:** 2026-10-18
+
 ## Purpose
 This skill bundle adds specialty depth to RADIANT-LLM for nuclear safety, security, safeguards, advanced reactors, digital twins, and regulatory interpretation support.
 
