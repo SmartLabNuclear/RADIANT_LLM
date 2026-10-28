@@ -1,11 +1,14 @@
 # visual-parser (Standalone Visual-RAG PDF & Image Ingestion)
 
+[![PyPI](https://img.shields.io/pypi/v/visual-parser.svg)](https://pypi.org/project/visual-parser/)
 ![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)
 ![PyTorch](https://img.shields.io/badge/PyTorch-2.1%2B-ee4c2c.svg)
 ![LangChain](https://img.shields.io/badge/LangChain-0.1%2B-1C3C3C.svg)
 ![CUDA](https://img.shields.io/badge/CUDA-optional-76B900.svg)
 
 `visual-parser` converts PDFs (and standalone images alongside them) into a multi-modal JSONL knowledge base (text chunks, figure descriptions, standalone image descriptions, metadata). It was extracted from [RADIANT-LLM](https://github.com/SmartLabNuclear/RADIANT_LLM) as a standalone PDF-and-image ingestion tool, independent of any chatbot.
+
+**Install from PyPI:** `pip install visual-parser` — [pypi.org/project/visual-parser](https://pypi.org/project/visual-parser/).
 
 1) Run `visual-parser` on a directory of curated PDFs and/or standalone images to generate JSONL KB files.
 2) Point any downstream RAG system at the generated KB — RADIANT-LLM, AutoSAM, and AutoFLUKA all consume the identical JSONL/registry format, so the same KB works with any of them without re-parsing.
@@ -32,8 +35,6 @@ By default, the pipeline writes:
 - `image_descriptions_kb.jsonl`: one holistic description per **standalone image** file found alongside your PDFs in `--input-dir` (not a PDF's own figures) — auto-detected by extension, no separate flag needed; disable with `--skip-images`.
 
 Alongside the KB, the pipeline also writes bookkeeping files: `04_processed_pdfs.txt` / `parsed_images.txt` (track which PDFs/images have already been processed, so re-runs skip them unless `--rebuild` or `--redo NAME`) and `05_pipeline.log` (run log at the verbosity set by `--log-level`, default `ERROR`).
-
-> **Breaking change in 2.2.3:** the standalone-image KB file was renamed from `image_descriptions.jsonl` to `image_descriptions_kb.jsonl` (matching the `NN_name_kb.jsonl` convention used by the other three KB files). Upgrading from an older version does **not** migrate existing data automatically — the resume check only looks at the new filename, so already-described images in an old `image_descriptions.jsonl` would otherwise appear "new" again and get re-described. If you have existing data, rename the file yourself before re-running: `image_descriptions.jsonl` → `image_descriptions_kb.jsonl`.
 
 ## API Keys (.env)
 
