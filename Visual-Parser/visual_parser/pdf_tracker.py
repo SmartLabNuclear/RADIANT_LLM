@@ -96,6 +96,8 @@ def find_new_pdfs(
     input_dir: str,
     registry_filename: str = PROCESSED_REGISTRY,
     rebuild: bool = False,
+    *,
+    registry_path: str | None = None,
 ) -> List[str]:
     """
     Walk *input_dir* recursively and return full paths of PDFs that have NOT
@@ -103,14 +105,24 @@ def find_new_pdfs(
 
     Args:
         input_dir:         Root directory to search for ``.pdf`` files.
-        registry_filename: Name of the tracking file inside *input_dir*.
+        registry_filename: Name of the tracking file inside *input_dir*,
+                           used only when *registry_path* is not given.
         rebuild:           When True, return *all* PDFs regardless of the
                            registry (forces a full re-parse).
+        registry_path:     Full path to the tracking file. When omitted,
+                           defaults to ``input_dir/registry_filename`` (the
+                           historical behavior, kept for callers -- such as
+                           RADIANT-LLM -- that use the same folder for both
+                           input and output). Callers whose output directory
+                           differs from their input directory must pass the
+                           registry's real location explicitly here, the
+                           same way find_new_images() already requires.
 
     Returns:
         Sorted list of absolute PDF paths.
     """
-    registry_path = os.path.join(input_dir, registry_filename)
+    if registry_path is None:
+        registry_path = os.path.join(input_dir, registry_filename)
     processed = set() if rebuild else set(load_processed_pdfs(registry_path))
 
     new_pdfs = [

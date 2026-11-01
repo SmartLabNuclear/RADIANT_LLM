@@ -17,7 +17,9 @@ One record per image is appended to ``image_descriptions_kb.jsonl`` in
         "source":      "diagram1.png",
         "image_id":    "a1b2c3d4e5f6g7h8",
         "title":       "Vertical Parabolic Gate Schematic",
-        "description": "**Subject:** ..."
+        "description": "**Subject:** ...",
+        "vision_provider": "gpt",
+        "vision_model":    "gpt-5.4"
     }
 """
 
@@ -279,10 +281,12 @@ def describe_images(
                 return {"image_name": image_name, "row": None}
 
             row = {
-                "source":      image_name,
-                "image_id":    make_document_id(image_name),
-                "title":       _derive_title(description),
-                "description": description,
+                "source":          image_name,
+                "image_id":        make_document_id(image_name),
+                "title":           _derive_title(description),
+                "description":     description,
+                "vision_provider": vision_provider,
+                "vision_model":    vision_model,
             }
             return {"image_name": image_name, "row": row}
 

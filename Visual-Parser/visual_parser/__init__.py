@@ -19,4 +19,4 @@ from visual_parser.config import ParserConfig
 from visual_parser.pipeline import run_pipeline
 
 __all__ = ["ParserConfig", "run_pipeline"]
-__version__ = "2.2.3"
+__version__ = "2.2.4"

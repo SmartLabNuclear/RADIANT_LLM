@@ -201,3 +201,152 @@ def test_resume_skips_already_done_pages_under_concurrency(tmp_path, monkeypatch
     assert sorted(r["page"] for r in rows) == [1, 2, 3]
     descriptions_by_page = {r["page"]: r["description"] for r in rows}
     assert descriptions_by_page[2] == "already done"  # untouched, not re-described
+
+
+def test_rows_record_vision_provider_and_model(tmp_path):
+    pdf_path = _make_pdf(tmp_path / "doc.pdf", num_pages=1)
+
+    figure_describer.describe_figures_for_new_pdfs(
+        new_pdf_paths=[pdf_path],
+        output_dir=str(tmp_path),
+        vision_provider="gpt",
+        vision_api_key="sk-test",
+        vision_model="gpt-5.4",
+        max_workers=1,
+        context_pages=0,
+    )
+
+    rows = _read_jsonl(tmp_path / "02_visuals_kb.jsonl")
+    assert len(rows) == 1
+    assert rows[0]["vision_provider"] == "gpt"
+    assert rows[0]["vision_model"] == "gpt-5.4"
+
+
+def test_resume_with_different_vision_model_skips_document_not_mixed(tmp_path, monkeypatch):
+    """Regression test for active prevention: a document already has a page
+    described under one vision_model; resuming with a different one must not
+    silently mix the two under one document. The document is skipped in full
+    (not partially re-described) and its basename is reported back."""
+    figures_path = tmp_path / "02_visuals_kb.jsonl"
+    pdf_path = _make_pdf(tmp_path / "doc.pdf", num_pages=2)
+
+    figures_path.write_text(
+        json.dumps({
+            "source": "doc.pdf", "page": 1, "document_id": "x", "figure_index": 0,
+            "figure_id": "x:p1:f0", "description": "old",
+            "vision_provider": "gpt", "vision_model": "gpt-5.4",
+        }) + "\n",
+        encoding="utf-8",
+    )
+
+    called = []
+
+    def fake(images, prompt, provider, api_key, model, detail, reasoning_effort):
+        called.append(True)
+        return json.dumps([{"description": "new"}])
+
+    monkeypatch.setattr(figure_describer, "call_vision_llm", fake)
+
+    skipped = figure_describer.describe_figures_for_new_pdfs(
+        new_pdf_paths=[pdf_path],
+        output_dir=str(tmp_path),
+        vision_provider="gpt",
+        vision_api_key="sk-test",
+        vision_model="gpt-5.5",  # different from the existing row's gpt-5.4
+        max_workers=1,
+        context_pages=0,
+    )
+
+    assert skipped == ["doc.pdf"]
+    assert called == []  # page 2 was never even attempted
+    rows = _read_jsonl(figures_path)
+    assert len(rows) == 1  # only the original row -- nothing added, nothing mixed in
+    assert rows[0]["vision_model"] == "gpt-5.4"
+
+
+def test_resume_with_same_vision_model_proceeds_normally(tmp_path, monkeypatch):
+    figures_path = tmp_path / "02_visuals_kb.jsonl"
+    pdf_path = _make_pdf(tmp_path / "doc.pdf", num_pages=2)
+
+    figures_path.write_text(
+        json.dumps({
+            "source": "doc.pdf", "page": 1, "document_id": "x", "figure_index": 0,
+            "figure_id": "x:p1:f0", "description": "old",
+            "vision_provider": "gpt", "vision_model": "gpt-5.4",
+        }) + "\n",
+        encoding="utf-8",
+    )
+
+    skipped = figure_describer.describe_figures_for_new_pdfs(
+        new_pdf_paths=[pdf_path],
+        output_dir=str(tmp_path),
+        vision_provider="gpt",
+        vision_api_key="sk-test",
+        vision_model="gpt-5.4",  # same as the existing row
+        max_workers=1,
+        context_pages=0,
+    )
+
+    assert skipped == []
+    rows = _read_jsonl(figures_path)
+    assert sorted(r["page"] for r in rows) == [1, 2]
+
+
+def test_resume_with_no_recorded_model_does_not_block(tmp_path):
+    """Pre-upgrade rows have no vision_model field at all -- that must be
+    treated as unknown provenance, not a mismatch, per HANDOFF's
+    compatibility note that a missing block just means 'details unknown'."""
+    figures_path = tmp_path / "02_visuals_kb.jsonl"
+    pdf_path = _make_pdf(tmp_path / "doc.pdf", num_pages=2)
+
+    figures_path.write_text(
+        json.dumps({
+            "source": "doc.pdf", "page": 1, "document_id": "x", "figure_index": 0,
+            "figure_id": "x:p1:f0", "description": "old",
+        }) + "\n",
+        encoding="utf-8",
+    )
+
+    skipped = figure_describer.describe_figures_for_new_pdfs(
+        new_pdf_paths=[pdf_path],
+        output_dir=str(tmp_path),
+        vision_provider="gpt",
+        vision_api_key="sk-test",
+        vision_model="gpt-5.5",
+        max_workers=1,
+        context_pages=0,
+    )
+
+    assert skipped == []
+    rows = _read_jsonl(figures_path)
+    assert sorted(r["page"] for r in rows) == [1, 2]
+
+
+def test_mismatch_in_one_document_does_not_block_others(tmp_path):
+    figures_path = tmp_path / "02_visuals_kb.jsonl"
+    mismatched_pdf = _make_pdf(tmp_path / "mismatched.pdf", num_pages=1)
+    clean_pdf = _make_pdf(tmp_path / "clean.pdf", num_pages=1)
+
+    figures_path.write_text(
+        json.dumps({
+            "source": "mismatched.pdf", "page": 1, "document_id": "x", "figure_index": 0,
+            "figure_id": "x:p1:f0", "description": "old",
+            "vision_provider": "gpt", "vision_model": "gpt-5.4",
+        }) + "\n",
+        encoding="utf-8",
+    )
+
+    skipped = figure_describer.describe_figures_for_new_pdfs(
+        new_pdf_paths=[mismatched_pdf, clean_pdf],
+        output_dir=str(tmp_path),
+        vision_provider="gpt",
+        vision_api_key="sk-test",
+        vision_model="gpt-5.5",
+        max_workers=2,
+        context_pages=0,
+    )
+
+    assert skipped == ["mismatched.pdf"]
+    rows = _read_jsonl(figures_path)
+    sources_written = {r["source"] for r in rows if r.get("vision_model") == "gpt-5.5"}
+    assert sources_written == {"clean.pdf"}

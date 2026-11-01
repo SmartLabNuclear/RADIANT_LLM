@@ -16,7 +16,9 @@ appended to ``02_visuals_kb.jsonl`` in *output_dir*:
         "document_id":   "a1b2c3d4e5f6g7h8",
         "figure_index":  0,
         "figure_id":     "a1b2c3d4e5f6g7h8:p3:f0",
-        "description":   "**Subject:** ..."
+        "description":   "**Subject:** ...",
+        "vision_provider": "gpt",
+        "vision_model":    "gpt-5.4"
     }
 """
 
@@ -88,7 +90,7 @@ def describe_figures_for_new_pdfs(
     reasoning_effort: Optional[str] = "medium",
     max_workers: int = 4,
     context_pages: int = 0,
-) -> None:
+) -> List[str]:
     """
     For each PDF in *new_pdf_paths*, rasterise every page at *raster_dpi* DPI,
     call the Vision LLM for each page (concurrently, up to *max_workers* at
@@ -124,6 +126,21 @@ def describe_figures_for_new_pdfs(
     its basename from the processed-PDFs registry, then pass it in here as
     if new; this function has no bypass of its own, so there is no path to
     producing a duplicate row.
+
+    Each written row also carries ``vision_provider``/``vision_model``, so a
+    document resumed later under a different model is detectable. Detection
+    is active, not just recorded after the fact: if a PDF already has rows
+    from a *different* vision_model than this call's, its remaining pages
+    are skipped entirely (not mixed in under the new model) and its basename
+    is returned, so a resumed document never silently ends up with figures
+    described by two different models. Pre-upgrade rows with no recorded
+    vision_model are treated as unknown, not a mismatch, and do not block.
+    Callers that want the document redescribed consistently under the new
+    model must first clear it (see kb_redo.redo_entries(), e.g. via --redo).
+
+    Returns:
+        Basenames skipped in full due to a detected vision_model mismatch
+        against their existing rows (empty list when none were skipped).
     """
     # -----------------------------------------------------------------------
     # Step 1 – Rasterise every page of every new PDF
@@ -147,7 +164,7 @@ def describe_figures_for_new_pdfs(
 
     if not page_images:
         logger.info("No pages to describe (all PDFs failed to rasterise).")
-        return
+        return []
 
     # -----------------------------------------------------------------------
     # Step 2 – Group page images by PDF name. Order within each group is
@@ -165,6 +182,7 @@ def describe_figures_for_new_pdfs(
     # -----------------------------------------------------------------------
     figures_path = os.path.join(output_dir, "02_visuals_kb.jsonl")
     done_pages: set = set()
+    prior_models_by_pdf: Dict[str, set] = defaultdict(set)
     if os.path.exists(figures_path):
         with open(figures_path, encoding="utf-8") as _fh:
             for _line in _fh:
@@ -177,6 +195,9 @@ def describe_figures_for_new_pdfs(
                     _pg  = _rec.get("page")
                     if _src and _pg is not None:
                         done_pages.add((_src, _pg))
+                    _prior_model = _rec.get("vision_model")
+                    if _src and _prior_model:
+                        prior_models_by_pdf[_src].add(_prior_model)
                 except Exception:
                     pass
     if done_pages:
@@ -191,7 +212,20 @@ def describe_figures_for_new_pdfs(
     #          never crosses into a different PDF.
     # -----------------------------------------------------------------------
     tasks: List[Dict[str, Any]] = []
+    model_mismatch_skipped: List[str] = []
     for pdf_name, image_records in pages_by_pdf.items():
+        prior_models = prior_models_by_pdf.get(pdf_name)
+        if prior_models and vision_model not in prior_models:
+            msg = (
+                f"[FIGURES] Skipping {pdf_name}: already has figures described with "
+                f"{', '.join(sorted(prior_models))}, but this run is using {vision_model}. "
+                f"Run with --redo {pdf_name} to reprocess it entirely under the new model."
+            )
+            logger.error(msg)
+            print(msg)
+            model_mismatch_skipped.append(pdf_name)
+            continue
+
         for idx, record in enumerate(image_records):
             page_number = record["page"]
             if (pdf_name, page_number) in done_pages:
@@ -213,7 +247,7 @@ def describe_figures_for_new_pdfs(
 
     if not tasks:
         logger.info("No new pages to describe — all already processed.")
-        return
+        return model_mismatch_skipped
 
     # -----------------------------------------------------------------------
     # Step 4 – Call Vision LLM per task, concurrently. Each worker only
@@ -265,12 +299,14 @@ def describe_figures_for_new_pdfs(
                     )
                     continue
                 page_rows.append({
-                    "source":       pdf_name,
-                    "page":         page_number,
-                    "document_id":  document_id,
-                    "figure_index": fig_idx,
-                    "figure_id":    f"{document_id}:p{page_number}:f{fig_idx}",
-                    "description":  description,
+                    "source":          pdf_name,
+                    "page":            page_number,
+                    "document_id":     document_id,
+                    "figure_index":    fig_idx,
+                    "figure_id":       f"{document_id}:p{page_number}:f{fig_idx}",
+                    "description":     description,
+                    "vision_provider": vision_provider,
+                    "vision_model":    vision_model,
                 })
             return {"pdf_name": pdf_name, "page_number": page_number, "rows": page_rows}
 
@@ -306,10 +342,12 @@ def describe_figures_for_new_pdfs(
     for pdf_name, count in written_by_pdf.items():
         logger.info("[FIGURES] %s: %d figure(s) written.", pdf_name, count)
     for pdf_name in pages_by_pdf:
-        if pdf_name not in written_by_pdf:
+        if pdf_name not in written_by_pdf and pdf_name not in model_mismatch_skipped:
             logger.info("[FIGURES] %s: no new figures (all pages done or none detected).", pdf_name)
 
     if total_written:
         print(f"[FIGURES] Wrote {total_written} figure record(s) to 02_visuals_kb.jsonl.")
     else:
         logger.info("No new figures written — all pages already processed or none detected.")
+
+    return model_mismatch_skipped

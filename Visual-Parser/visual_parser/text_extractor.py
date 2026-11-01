@@ -34,7 +34,7 @@ import pymupdf as fitz  # PyMuPDF -- "fitz" is the deprecated legacy import name
 from PIL import Image
 
 from visual_parser.jsonl_writer import append_to_jsonl, make_document_id
-from visual_parser.pdf_tracker import load_processed_pdfs
+from visual_parser.pdf_tracker import PROCESSED_REGISTRY, load_processed_pdfs
 
 logger = logging.getLogger(__name__)
 
@@ -101,7 +101,7 @@ def nougat_extract_pdfs(
 
     from visual_parser.nougat_engine import RasterizePaper, StoppingCriteriaScores
 
-    registry_path = os.path.join(output_dir, "04_processed_pdfs.txt")
+    registry_path = os.path.join(output_dir, PROCESSED_REGISTRY)
     processed_set = set(load_processed_pdfs(registry_path))
     pdfs_to_run   = [p for p in only_process_these if os.path.basename(p) not in processed_set]
 
@@ -284,7 +284,7 @@ def lightweight_extract_pdfs(
     """
     from io import BytesIO
 
-    registry_path = os.path.join(output_dir, "04_processed_pdfs.txt")
+    registry_path = os.path.join(output_dir, PROCESSED_REGISTRY)
     processed_set = set(load_processed_pdfs(registry_path))
     pdfs_to_run   = [p for p in only_process_these if os.path.basename(p) not in processed_set]
 

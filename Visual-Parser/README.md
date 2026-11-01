@@ -11,7 +11,7 @@
 **Install from PyPI:** `pip install visual-parser` — [pypi.org/project/visual-parser](https://pypi.org/project/visual-parser/).
 
 1) Run `visual-parser` on a directory of curated PDFs and/or standalone images to generate JSONL KB files.
-2) Point any downstream RAG system at the generated KB — RADIANT-LLM, AutoSAM, and AutoFLUKA all consume the identical JSONL/registry format, so the same KB works with any of them without re-parsing.
+2) Point any downstream RAG system at the generated KB — [RADIANT-LLM](https://github.com/SmartLabNuclear/RADIANT_LLM), [AutoSAM](https://github.com/SmartLabNuclear/AutoSAM), and [AutoFLUKA](https://github.com/SmartLabNuclear/AutoFLUKA) all consume the identical JSONL/registry format, so the same KB works with any of them without re-parsing.
 
 ## Table of Contents
 
@@ -35,6 +35,12 @@ By default, the pipeline writes:
 - `image_descriptions_kb.jsonl`: one holistic description per **standalone image** file found alongside your PDFs in `--input-dir` (not a PDF's own figures) — auto-detected by extension, no separate flag needed; disable with `--skip-images`.
 
 Alongside the KB, the pipeline also writes bookkeeping files: `04_processed_pdfs.txt` / `parsed_images.txt` (track which PDFs/images have already been processed, so re-runs skip them unless `--rebuild` or `--redo NAME`) and `05_pipeline.log` (run log at the verbosity set by `--log-level`, default `ERROR`).
+
+Every `02_visuals_kb.jsonl` and `image_descriptions_kb.jsonl` row records the `vision_provider` and `vision_model` that produced it, and every `03_metadata_kb.jsonl` row carries a `parser` block: the `visual_parser` version, `parsed_at`, `text_engine`, `text_fallback`, the resolved `vision_model`, and the run's chunking/context settings. This records which engine and model actually produced a document's rows, since the configured settings aren't always what ran (Nougat can fail and fall back to lightweight; a local Ollama model can be auto-selected at run time). Rows written by older versions lack these fields.
+
+Figure description also guards against mixed models: if a PDF already has figures described under a different `vision_model` than the current run's, its remaining pages are skipped entirely (not partially re-described under the new model) and its basename is reported back. Reprocess it with `--redo NAME` to redescribe it consistently under the new model.
+
+Release notes and upgrade notes are in [CHANGELOG.md](CHANGELOG.md).
 
 ## API Keys (.env)
 

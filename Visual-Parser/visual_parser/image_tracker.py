@@ -35,13 +35,10 @@ def find_new_images(
     Walk *input_dir* recursively and return full paths of standalone images
     that have NOT yet been processed.
 
-    Unlike find_new_pdfs(), *registry_path* is an explicit parameter rather
-    than being joined internally against *input_dir* -- this lets the caller
-    anchor the registry at effective_output_dir() unambiguously, sidestepping
-    a pre-existing bug on the PDF side where find_new_pdfs() always resolves
-    its registry against input_dir while pipeline.py separately writes it
-    against output_dir (the two diverge, and PDFs get reprocessed forever,
-    whenever --output-dir differs from --input-dir).
+    *registry_path* is an explicit required parameter (rather than a filename
+    joined internally against *input_dir*, as find_new_pdfs() used to do by
+    default) so the caller can anchor the registry at effective_output_dir()
+    unambiguously. find_new_pdfs() now accepts the same explicit override.
 
     Args:
         input_dir:     Root directory to search for image files.
