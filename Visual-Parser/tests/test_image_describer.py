@@ -171,6 +171,8 @@ def test_describe_images_writes_rows_for_each_image(tmp_path, monkeypatch):
     for row in rows:
         assert row["title"] == "Something"
         assert len(row["image_id"]) == 16
+        assert row["vision_provider"] == "gpt"
+        assert row["vision_model"] == "gpt-5.4"
 
 
 def test_failed_image_is_not_marked_written(tmp_path, monkeypatch):

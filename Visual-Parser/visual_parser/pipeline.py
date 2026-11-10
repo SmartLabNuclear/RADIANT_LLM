@@ -26,7 +26,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Dict, List, Optional, Tuple
 
 from visual_parser.config import ParserConfig
 from visual_parser.figure_describer import describe_figures_for_new_pdfs
@@ -58,6 +59,41 @@ def _setup_logging(config: ParserConfig) -> None:
     console.setLevel(logging.INFO)
     console.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
     logging.getLogger().addHandler(console)
+
+
+def _build_parser_block(
+    config: ParserConfig,
+    vision_model: str,
+    text_engine: str,
+    text_fallback: bool,
+) -> Dict:
+    """
+    Build the per-document ``parser`` provenance block attached to each
+    03_metadata_kb.jsonl row -- records which engine/model actually produced
+    this document's rows, since the configured settings aren't always what
+    ran (Nougat can fail and fall back to lightweight; Ollama can auto-select
+    a model at run time). New field only; does not change any existing KB
+    field or ID.
+    """
+    from visual_parser import __version__
+
+    block = {
+        "visual_parser":        __version__,
+        "parsed_at":            datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+        "text_engine":          text_engine,
+        "text_fallback":        text_fallback,
+        "vision_provider":      config.vision_provider,
+        "vision_model":         vision_model,
+        "vision_detail":        config.vision_detail,
+        "reasoning_effort":     config.gpt_reasoning_effort,
+        "metadata_pages":       config.metadata_pages,
+        "vision_context_pages": config.vision_context_pages,
+        "chunk_size":           config.chunk_size,
+        "chunk_overlap":        config.chunk_overlap,
+    }
+    if text_engine == "nougat":
+        block["nougat_model"] = config.nougat_model
+    return block
 
 
 def _recover_stale_registry_entries(input_dir: str, output_dir: str, registry_path: str) -> int:
@@ -134,6 +170,7 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                 "redone_basenames":     List[str],
                 "redo_names_not_found": List[str],
                 "processed_basenames":  List[str],
+                "figure_model_mismatches": List[str],
             }
     """
     if config is None:
@@ -155,6 +192,7 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
         "failed_basenames":     [],
         "redone_basenames":     [],
         "redo_names_not_found": [],
+        "figure_model_mismatches": [],
         "status":               "success",
     }
 
@@ -174,7 +212,10 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
     # -----------------------------------------------------------------------
     redo_name_set = set(config.redo_names)
     if config.rebuild:
-        redo_name_set |= {os.path.basename(p) for p in find_new_pdfs(config.input_dir, rebuild=True)}
+        redo_name_set |= {
+            os.path.basename(p)
+            for p in find_new_pdfs(config.input_dir, rebuild=True, registry_path=registry_path)
+        }
         redo_name_set |= {
             os.path.basename(p)
             for p in find_new_images(config.input_dir, images_registry_path, rebuild=True)
@@ -384,7 +425,7 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
         ) if os.path.exists(figures_path) else 0
 
         print(f"[Step 2] Describing figures for {len(all_pdfs)} PDF(s) (page-level resume active) …")
-        describe_figures_for_new_pdfs(
+        summary["figure_model_mismatches"] = describe_figures_for_new_pdfs(
             new_pdf_paths    = all_pdfs,
             output_dir       = output_dir,
             vision_provider  = config.vision_provider,
@@ -417,6 +458,7 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
             row         = {"source": source, "document_id": document_id}
             if isinstance(meta, dict):
                 row.update(meta)
+            row["parser"] = _build_parser_block(config, _vision_model, "skipped", False)
             metadata_rows.append(row)
 
         if metadata_rows:
@@ -432,13 +474,13 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
     else:
         # ── Normal (full) pipeline ───────────────────────────────────────────
 
-        new_pdfs = find_new_pdfs(config.input_dir, rebuild=False)
+        new_pdfs = find_new_pdfs(config.input_dir, rebuild=False, registry_path=registry_path)
         summary["new_pdfs_found"] = len(new_pdfs)
 
         if not new_pdfs:
             recovered = _recover_stale_registry_entries(config.input_dir, output_dir, registry_path)
             if recovered:
-                new_pdfs = find_new_pdfs(config.input_dir, rebuild=False)
+                new_pdfs = find_new_pdfs(config.input_dir, rebuild=False, registry_path=registry_path)
                 summary["new_pdfs_found"] = len(new_pdfs)
 
         if not new_pdfs and not images_to_process:
@@ -482,7 +524,11 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
         # Step 1 — Text extraction and chunking. Guarded by `if new_pdfs:` so
         # an image-only pass (possible now that images are tracked/processed
         # independently of PDFs) never needlessly loads Nougat for zero PDFs.
+        # text_engine_by_basename records which engine actually produced each
+        # PDF's chunks (engine, text_fallback) -- the configured text_mode
+        # isn't always what ran, since Nougat can fail and fall back.
         processor = model = device = None  # only bound by the "nougat" branch below
+        text_engine_by_basename: Dict[str, Tuple[str, bool]] = {}
         if not new_pdfs:
             processed_basenames, failed_basenames, chunk_count = [], [], 0
         elif config.text_mode == "nougat":
@@ -504,6 +550,8 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                     nougat_crop_margin = config.nougat_crop_margin,
                 )
                 print(nougat_summary)
+                for _name in processed_basenames:
+                    text_engine_by_basename[_name] = ("nougat", False)
             except Exception as exc:
                 logger.error("Nougat initialization/extraction failed: %s", exc)
                 print(f"[Step 1] Nougat failed ({exc}). Falling back to lightweight extraction.")
@@ -515,6 +563,8 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                     max_workers        = config.max_workers,
                 )
                 print(lw_summary)
+                for _name in processed_basenames:
+                    text_engine_by_basename[_name] = ("lightweight", True)
             else:
                 if failed_basenames:
                     failed_set = set(failed_basenames)
@@ -534,6 +584,8 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                     processed_basenames.extend(lw_processed)
                     failed_basenames = [name for name in failed_basenames if name not in set(lw_processed)]
                     chunk_count += lw_chunk_count
+                    for _name in lw_processed:
+                        text_engine_by_basename[_name] = ("lightweight", True)
 
         else:  # "lightweight"
             print("[Step 1] Running lightweight (PyMuPDF) text extraction …")
@@ -547,6 +599,8 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                 max_workers        = config.max_workers,
             )
             print(lw_summary)
+            for _name in processed_basenames:
+                text_engine_by_basename[_name] = ("lightweight", False)
 
         summary["processed_basenames"] = processed_basenames
         summary["failed_basenames"]    = failed_basenames
@@ -587,7 +641,7 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
 
         if pdfs_for_figures:
             print(f"[Step 2] Describing figures in {len(pdfs_for_figures)} PDF(s) …")
-            describe_figures_for_new_pdfs(
+            summary["figure_model_mismatches"] = describe_figures_for_new_pdfs(
                 new_pdf_paths    = pdfs_for_figures,
                 output_dir       = output_dir,
                 vision_provider  = config.vision_provider,
@@ -621,6 +675,8 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
             row         = {"source": source, "document_id": document_id}
             if isinstance(meta, dict):
                 row.update(meta)
+            text_engine, text_fallback = text_engine_by_basename.get(source, ("unknown", False))
+            row["parser"] = _build_parser_block(config, _vision_model, text_engine, text_fallback)
             metadata_rows.append(row)
 
         if metadata_rows:
