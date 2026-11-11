@@ -639,9 +639,14 @@ This small thickness-to-radius ratio is the key assumption that justifies replac
 - Answer
 
 ```text
-- Branch names are mostly right, but the CFR labels are missed and one extra label is introduced.
-- Unsupported detail: IORP1 attached to Physical Security.
-- Unsupported detail: States that no CFR citations are shown.
+According to Figure 4 on this page:
+
+- The **two top-level regulatory branches** are:
+  1. **Physical Security (IORP1)**
+  2. **Safeguards (MC&A)**
+
+- **CFR citations explicitly attached to these top-level branches:**  
+  **None.** In Figure 4 as rendered on this page, no specific CFR (Code of Federal Regulations) citations are shown directly alongside the top-level labels “Physical Security (IORP1)” or “Safeguards (MC&A)”. Any CFR references, if present elsewhere in the full document, are not attached at this top branch level in the figure content available here.
 ```
 
 - Citations
@@ -725,8 +730,21 @@ This small thickness-to-radius ratio is the key assumption that justifies replac
 - Answer
 
 ```text
-- Identifies the right activities but overextends them to Final Design.
-- Unsupported detail: Assessment methods and Trade Studies are said to continue through Final Design.
+In Figure 4, two supporting analysis activities are shown running alongside the design stages:
+
+1. **Security Assessment Methods and Trade Studies**  
+   - Appears in parallel with:  
+     - Conceptual Design  
+     - Preliminary Design  
+     - Final Design  
+
+2. **Safeguards Assessment Methods and Trade Studies**  
+   - Appears in parallel with:  
+     - Conceptual Design  
+     - Preliminary Design  
+     - Final Design  
+
+So, for both the Physical Security and Safeguards (MC&A) branches, assessment methods and trade studies accompany all three design stages from Conceptual through Final Design.
 ```
 
 - Citations
@@ -750,8 +768,23 @@ This small thickness-to-radius ratio is the key assumption that justifies replac
 - Answer
 
 ```text
-- Part A is correct, but Part B and Part C do not fully match the figure.
-- Unsupported detail: Part B is described as the same whole-plant boundary used in Part A.
+In Figure 6‑9, the control‑volume (CV) boundaries are chosen as follows:
+
+- **Part A (CV 1): Whole nuclear plant as a single CV**  
+  - The dashed boundary encloses the **entire plant**: reactor (R), steam generator (SG), turbine (T), condenser/heat‑rejection equipment, and all working‑fluid loops.  
+  - Fuel enters this plant‑wide CV; electric power and atmospheric heat rejection leave it.
+
+- **Part B (CV 2): Same geometric boundary, same “whole plant” view**  
+  - The dashed boundary again encloses the **entire plant**, just as in A (R, SG, T, condenser, etc.).  
+  - Fuel is again the only inflow; electric power and rejected heat are the outflows.  
+  - The **boundary itself is essentially the same as in A**; Part B simply restates the plant‑as‑one‑CV viewpoint for comparison of effectiveness/efficiency.
+
+- **Part C (CV 3): Thermal‑fluid plant only, reactor outside**  
+  - The dashed boundary encloses only the **thermal‑fluid power‑conversion system**: SG, T, condenser, and associated piping/loops.  
+  - The **reactor R lies outside** this CV. The primary coolant crosses the boundary as a heat‑carrying stream, so the CV is driven by heat from an external source (the reactor).  
+  - Fuel does **not** cross this CV boundary; the outputs are still electric power and atmospheric heat rejection.
+
+So, A and B use a plant‑wide control volume (including the reactor), while C uses a smaller control volume that excludes the reactor and includes only the power‑conversion equipment.
 ```
 
 - Citations
@@ -771,9 +804,9 @@ This small thickness-to-radius ratio is the key assumption that justifies replac
 - Answer
 
 ```text
-- Both the panel and the label are wrong.
-- Unsupported detail: Fuel is assigned to Part C instead of Part B.
-- Unsupported detail: Claims there is no explicit heat-transfer label.
+- The part of Figure 6‑9 that explicitly separates the **Fuel** from the rest of the plant is **Figure 6‑9C (Control Volume 3)**, where the reactor (and its fuel) lie outside the dashed control‑volume boundary that encloses only the thermal‑fluid plant.
+
+- In this subfigure, the **energy transfer from Fuel into the plant is shown schematically as a heat‑transfer interface across the boundary**, but it is **not given a specific label or symbol** in the provided page (i.e., no explicit name like \( \dot{Q}_\text{fuel} \) is shown).
 ```
 
 - Citations
@@ -793,9 +826,15 @@ This small thickness-to-radius ratio is the key assumption that justifies replac
 - Answer
 
 ```text
-- Gets the two-volume split at a high level but misses the component sets and label.
-- Unsupported detail: Fuel is placed in the left control volume.
-- Unsupported detail: No explicit heat-transfer label is claimed.
+- **Left control volume (Figure 6‑9C):**  
+  - Contains the **reactor (R)** and its **Fuel** (the nuclear heat source).
+
+- **Right control volume (Figure 6‑9C):**  
+  - Contains the **steam generator (SG)**, **turbine (T)**, the **condenser/atmospheric heat‑rejection equipment**, the return/feedwater loop, and the **generator** producing electric power.
+
+- **Heat‑transfer label between them:**  
+  - In the portion of Figure 6‑9C on this page, the **energy transfer from the reactor/Fuel to the SG/thermal‑fluid plant is shown only as a heat‑transfer interface across the boundary**.  
+  - **No explicit heat‑transfer label (such as a symbol or \( \dot{Q} \) term) is printed between the two control volumes** in the available figure.
 ```
 
 - Citations

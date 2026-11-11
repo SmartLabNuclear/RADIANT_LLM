@@ -494,8 +494,14 @@ No. Fig. 3-7 does not give a numerical radius for the core barrel. The only expl
 - Answer
 
 ```text
-- Component order is right, but the state-point numbering is wrong.
-- Unsupported detail: Secondary-loop states are shifted by one position (2/3/4/1 instead of 3/4/1/2).
+- Steam generator outlet (steam to turbine): state 2
+- Turbine: expands steam from state 2 to state 3 (turbine exhaust)
+- Condenser: condenses exhaust steam to state 4 (condensate)
+- De-aerator/HPH and condensate/feedwater path: flows toward the pump (makeup/drains tie-ins shown)
+- Feedwater pump: raises pressure to state 1 (pump discharge to steam generator)
+- Steam generator inlet (feedwater): state 1, then heated/evaporated back to state 2 within the steam generator
+
+Source (PDF only): Todreas_and_Kazimir_p186.pdf, Figure 6-6 (processed page).
 ```
 
 - Citations
@@ -536,8 +542,11 @@ No. Fig. 3-7 does not give a numerical radius for the core barrel. The only expl
 - Answer
 
 ```text
-- Core explanation is right, with one extra unsupported rationale.
-- Unsupported detail: Material-corrosion limits are added beyond the canonical explanation.
+- Reason: The PWR’s primary coolant is constrained to a nominally saturated mixed-mean core outlet state (state 5), with allowable conditions set by core performance and material corrosion limits. If the outlet temperature is raised, the primary pressure must be increased to keep this state nominally saturated. These constraints make the primary loop unsuitable as the turbine steam source.
+- Consequence: Turbine-driving vapor is therefore produced in a separate secondary Rankine loop. The steam generator thermally links the loops, transferring heat from the constrained primary coolant to generate secondary steam that drives the turbine.
+
+Citation (PDF only):
+- Todreas_and_Kazimi_p186.pdf, p. 186, Figure 6-6; Section “3 Thermodynamic Analysis of Nuclear Power Plants.”
 ```
 
 - Citations
@@ -561,8 +570,12 @@ No. Fig. 3-7 does not give a numerical radius for the core barrel. The only expl
 - Answer
 
 ```text
-- Branch names are correct, but the CFR labels are missed.
-- Unsupported detail: States that no explicit CFR citations are shown.
+- Top-level branches in Figure 4:
+  - Physical Security
+  - Safeguards (MC&A)
+- Explicit CFR citations attached: None shown in the visible content for either branch.
+
+Source (PDF only): UNFSF_p21.pdf, p. 1, Figure 4 (“Framework for Integrating Safeguards into Design of Nuclear Facility”).
 ```
 
 - Citations
@@ -582,8 +595,13 @@ No. Fig. 3-7 does not give a numerical radius for the core barrel. The only expl
 - Answer
 
 ```text
-- The shared sequence is partially correct but includes one extra stage.
-- Unsupported detail: Adds a Regulatory Guides/NUREGS/Codes-and-Standards box that is not part of the common sequence.
+- The common sequence (in order) under both branches before integration is:
+  1) Performance Goal
+  2) [illegible] Design Criteria
+  3) Regulatory Guides, NUREGS, [illegible], Codes and Standards
+  4) Design Requirements
+
+Source (PDF only): UNFSF_p21.pdf, p. 1, Figure 4 (“Framework for Integrating Safeguards into Design of Nuclear Facility”).
 ```
 
 - Citations
@@ -603,8 +621,9 @@ No. Fig. 3-7 does not give a numerical radius for the core barrel. The only expl
 - Answer
 
 ```text
-- The dual-function idea is right, but the exact label is wrong.
-- Unsupported detail: Uses the wrong integration-box label: 'Integration of Design with Safeguard Requirements (Dual Function)'.
+- Exact label: “Integration of Design with Safeguard Requirements (Dual Function)”
+- Dual-role concept: It represents the simultaneous integration of Physical Security and Safeguards (MC&A) requirements into the design workflow—i.e., a dual-function integration step that harmonizes both domains before progressing through conceptual, preliminary, and final design.  
+- Source (PDF only): UNFSF_p21.pdf, p. 1, Figure 4.
 ```
 
 - Citations
@@ -669,10 +688,22 @@ No. Fig. 3-7 does not give a numerical radius for the core barrel. The only expl
 - Answer
 
 ```text
-- The control-volume decomposition is largely wrong.
-- Unsupported detail: Invents two control volumes in Part A.
-- Unsupported detail: Misstates the boundaries in Part B.
-- Unsupported detail: Misstates the left/right split in Part C.
+- Part A:
+  - Control Volume 1: Encloses the Reactor (R) plus the Steam Generator (SG).
+  - Control Volume 2: Encloses the Turbine (T), Pump (P), and balance-of-plant.
+  - Internal subregions: None highlighted.
+
+- Part B:
+  - Control Volume 1: Same as A (R + SG), but with an internal “Fuel” region explicitly highlighted within the Reactor.
+  - Control Volume 2: Same as A (T, P, and balance-of-plant).
+  - Internal subregions: Fuel region shown within the reactor.
+
+- Part C:
+  - Control Volume 1: Encloses only the Reactor (R).
+  - Control Volume 2: Encloses the SG, T, and P together.
+  - Internal subregions: None highlighted.
+
+Source (PDF only): Todreas_and_Kazimir_p190.pdf, Figure 6-9.
 ```
 
 - Citations
@@ -692,8 +723,10 @@ No. Fig. 3-7 does not give a numerical radius for the core barrel. The only expl
 - Answer
 
 ```text
-- Correct panel, wrong transfer label.
-- Unsupported detail: Uses 'fission rate' instead of Q-dot at T_fuel.
+- Part: Figure 6-9B (the middle panel) explicitly separates the Fuel from the rest of the plant.
+- Energy-transfer label: “fission rate.”
+
+Source (PDF only): Todreas_and_Kazimir_p190.pdf, Figure 6-9 (panel B).
 ```
 
 - Citations
@@ -713,9 +746,11 @@ No. Fig. 3-7 does not give a numerical radius for the core barrel. The only expl
 - Answer
 
 ```text
-- The split is only partially captured.
-- Unsupported detail: Places only R in the left volume.
-- Unsupported detail: Says the heat-transfer label is not visible.
+- Left control volume (Figure 6-9C): Reactor (R)
+- Right control volume (Figure 6-9C): Steam Generator (SG), Turbine (T), Pump (P)
+- Heat-transfer label between them: The available page extraction does not clearly show an explicit label between the two control volumes.
+
+Source (PDF only): Todreas_and_Kazimir_p190.pdf, p. 1, Figure 6-9C.
 ```
 
 - Citations
@@ -735,10 +770,13 @@ No. Fig. 3-7 does not give a numerical radius for the core barrel. The only expl
 - Answer
 
 ```text
-- Only Electric Power is recoverable; the rest are unsupported substitutions.
-- Unsupported detail: Steam listed as a right-side output.
-- Unsupported detail: Condensate listed as a right-side output.
-- Unsupported detail: Make-up water listed as a right-side output.
+- Right-side plant outputs/exchanges shown (labels as they appear):
+  - Electric Power
+  - Steam
+  - Condensate
+  - Make-up water
+
+Source (PDF only): Todreas_and_Kazimi_p190.pdf, p. 1, Figure 6-9.
 ```
 
 - Citations
@@ -758,10 +796,21 @@ No. Fig. 3-7 does not give a numerical radius for the core barrel. The only expl
 - Answer
 
 ```text
-- Some component mappings are correct, but the answer broadens the requested label set.
-- Unsupported detail: Fuel is treated as a schematic component label.
-- Unsupported detail: Control-volume labels are treated as component labels.
-- Unsupported detail: Right-side stream labels are mixed into the answer.
+- R — Reactor: the nuclear heat source.
+- SG — Steam Generator: transfers heat from the reactor coolant to produce secondary-side steam.
+- T — Turbine: expands steam to produce shaft work that drives the generator (electric power).
+- P — Pump: returns condensate/feedwater to the steam generator.
+- Fuel — Reactor fuel region (explicitly shown inside the reactor in panel B).
+- Control Volume 1 / Control Volume 2 — Analysis boundaries used to partition plant subsystems (vary by panels A–C).
+
+Labeled streams/externals on the right:
+- Steam — flow from the steam generator to the turbine.
+- Condensate — return (post-condensation/feedwater path) back toward the steam generator.
+- Make-up water — external addition to the feedwater/condensate line.
+- Electric Power — electrical output from the plant to the external load/grid.
+
+Source (PDF only):
+- Todreas_and_Kazimi_p190.pdf, Figure 6-9 (Alternative control volume representations of a batch-fueled reactor plant).
 ```
 
 - Citations
