@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "visual-parser"
-version = "2.2.4"
+version = "2.2.5"
 description = "Standalone Visual-RAG PDF & Image Parser - text extraction and Vision-LLM figure/image descriptions to JSONL"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -33,7 +33,9 @@ classifiers = [
 ]
 
 dependencies = [
-    "PyMuPDF>=1.23.0",                 # fitz -- rasterisation & native text layer
+    "pypdfium2>=5.0.0",                # PDF page rendering & native text layer (BSD-3 / Apache-2.0)
+    "pypdf>=4.0.0",                    # PyPDFLoader fallback (langchain-community needs it, but does not install it)
+    "rapidfuzz>=3.0.0",                # string ratio for Nougat's post-processing (MIT)
     "Pillow>=10.0.0",                  # image handling
     "torch>=2.1.0",                    # CPU build is fine; GPU users install their own wheel -- see README's CUDA note
     "transformers>=4.38.0",            # AutoProcessor + VisionEncoderDecoderModel
@@ -47,7 +49,6 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "tqdm>=4.66.0",
     "nltk>=3.8",                       # required by NougatTokenizerFast
-    "python-Levenshtein>=0.20",        # required by NougatTokenizerFast
 ]
 
 [project.optional-dependencies]

@@ -2,6 +2,33 @@
 
 All notable changes to `visual-parser`, newest first. Dates are PyPI upload dates.
 
+## 2.2.5 - 2026-11-13
+
+Changed (upgrade note)
+- No copyleft dependencies. PyMuPDF (AGPL-3.0) is replaced by pypdfium2 (Apache-2.0 or BSD-3-Clause) for page rendering and the lightweight text layer, and python-Levenshtein (GPL-2.0-or-later) by RapidFuzz (MIT) for Nougat's post-processing. `pypdf` is now a declared dependency: the PyPDFLoader fallback needs it, but nothing installed it. The Docker image is built from `python:3.11-slim`; the older base image it started from carried PyMuPDF, MuPDF (`libmupdf-dev`) and Levenshtein in its layers.
+- Output differs slightly from 2.2.4. Page images (and so Nougat text and figure descriptions), lightweight text, chunk contents and some `chunk_id`s can change. Rows already in a knowledge base are untouched; a document parsed again gets the new output. To reproduce results made with 2.2.4 or earlier, use `pip install visual-parser==2.2.4`. Each `03_metadata_kb.jsonl` `parser` block now records `pdf_engine` (for example `pypdfium2 5.15.2 (PDFium 8149)`); rows without it were made with PyMuPDF.
+- PDF reading and rendering are serialised behind one lock, because PDFium is not thread-safe. Nougat inference and the vision-model calls still run in parallel across `--max-workers`.
+
+Fixed
+- A failure in Nougat's post-processing no longer sends the whole PDF to lightweight extraction. 2.2.4 caught only `AttributeError` there; any other error (for example the Levenshtein library being absent) made the PDF fail and fall back. Post-processing now keeps the raw decoded text and logs a warning.
+
+Comparison with 2.2.4
+Ten documents (507 pages, 2,571 chunks): the SAM Theory Manual and User Guide, the AutoSAM paper and the ASAP-SAM summary, the ABTR and MSRE source reports, two tech reports, a Monte Carlo course and one scanned textbook page. PyMuPDF 2.1 against pypdfium2 5.15.2 on Windows, transformers 5.22.2.
+- Lightweight text, per page (Indel similarity of whitespace-normalised text): mean 0.994, median 0.998, 5th percentile 0.984, minimum 0.717; 84 pages below 0.99 and 2 below 0.90. Page counts match for every document.
+- Chunks: 2,648 now against 2,571 before (+3.0%). 99.1% of the old chunk IDs still exist. The text of 16% of the chunks is identical; the rest differ in line breaks or spacing.
+- Page images at 96 dpi (26 pages): the same pixel size on all of them; mean absolute pixel difference 2.5 on a 0-255 scale (range 0.2 to 7.2).
+- Nougat on 8 of those pages, same model and same post-processing: four identical; three within 2.5% (similarity 0.9962, 0.9983, 0.9758); one near-blank page differs (0.31, 81 against 15 characters). The differences are OCR variants such as a gamma read as "y", or "Example 3-4" against "Example 3.4:".
+- Speed: pypdfium2 was not faster here. Reading the text layer of all 507 pages took 1.1 s with PyMuPDF and 2.7 s with pypdfium2 (a few milliseconds per page either way), and the lock means concurrent workers do not speed up PDF reading. Nougat inference and the vision calls, which dominate a run, are unaffected.
+
+Known differences in lightweight text
+- PDFium puts spaces between tokens that a PDF draws as separate text runs. The engine rejoins the cases that matter for SAM input and citations (`[ EOS ]` to `[EOS]`, `[ 12 ]` to `[12]`, `2.151 E -02` to `2.151E-02`; 129 of the 507 pages had them) and turns the control character PDFium emits for a hyphen at a line end back into `-`. Other spacing differences remain, for example letter-spaced slide titles come out as `Beg i n n er` and some mathematical spacing differs from MuPDF's.
+- Some PDFs hold small-font duplicate text that PDFium reads and MuPDF leaves out: on 2 of the 507 pages (both in the SAM Theory Manual) passages appear twice, plus a running header.
+- Math-font bracket pieces on equation pages are control characters, now removed; the blank lines they leave make the splitter produce a few more, smaller chunks.
+
+Added
+- `visual_parser/pdf_engine.py`: the one module that touches a PDF library.
+- Tests: the engine on rotated, cropped, encrypted (empty user password), JPEG-carrying and non-ASCII-named PDFs, and under four threads; the Nougat post-processing against outputs recorded with 2.2.4 and Levenshtein installed, and with Levenshtein absent; a guard that fails if a copyleft package returns to the code, the declared dependencies or the Dockerfile.
+
 ## 2.2.4 - 2026-10-20
 
 Added

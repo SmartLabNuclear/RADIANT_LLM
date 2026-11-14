@@ -1,7 +1,23 @@
+# Environments
+.venv/
+venv/
+.env
+
+# Python build/cache artifacts
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
 dist/
 build/
-*.egg-info/
-.env
+
+# Test/tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editor/OS cruft
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

@@ -86,7 +86,7 @@ def _build_arg_parser() -> argparse.ArgumentParser:
         default="nougat",
         help=(
             "nougat      - Nougat OCR model (best for scanned/complex PDFs, GPU recommended).\n"
-            "lightweight - PyMuPDF text layer + PyPDFLoader fallback (fast, no GPU needed)."
+            "lightweight - PDF text layer (pypdfium2) + PyPDFLoader fallback (fast, no GPU needed)."
         ),
     )
     text_group.add_argument(

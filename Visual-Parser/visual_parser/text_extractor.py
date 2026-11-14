@@ -7,10 +7,11 @@ Nougat (default)
     Requires: nougat_engine.NougatInitializer() result to be passed in.
 
 Lightweight (fast)
-    Uses PyMuPDF's native text layer (fitz.Page.get_text) with a PyPDFLoader
-    fallback.  Also extracts embedded equations via regex + pytesseract.
+    Uses the PDF's native text layer (via pdf_engine, i.e. pypdfium2) with a
+    PyPDFLoader (pypdf) fallback.  Also extracts embedded equations via regex
+    + pytesseract.
     Best for: born-digital PDFs where text is already machine-readable.
-    Requires: only PyMuPDF + langchain_community; no GPU.
+    Requires: only pypdfium2 + pypdf + langchain_community; no GPU.
 
 Both engines:
     • Walk only the PDFs listed in *only_process_these*
@@ -22,6 +23,7 @@ Both engines:
 
 from __future__ import annotations
 
+import importlib.util
 import io
 import logging
 import os
@@ -30,9 +32,9 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Dict, List, Optional, Tuple
 
-import pymupdf as fitz  # PyMuPDF -- "fitz" is the deprecated legacy import name
 from PIL import Image
 
+from visual_parser import pdf_engine
 from visual_parser.jsonl_writer import append_to_jsonl, make_document_id
 from visual_parser.pdf_tracker import PROCESSED_REGISTRY, load_processed_pdfs
 
@@ -99,7 +101,11 @@ def nougat_extract_pdfs(
     """
     from transformers import StoppingCriteriaList
 
-    from visual_parser.nougat_engine import RasterizePaper, StoppingCriteriaScores
+    from visual_parser.nougat_engine import (
+        RasterizePaper,
+        StoppingCriteriaScores,
+        postprocess_nougat_page,
+    )
 
     registry_path = os.path.join(output_dir, PROCESSED_REGISTRY)
     processed_set = set(load_processed_pdfs(registry_path))
@@ -151,14 +157,10 @@ def nougat_extract_pdfs(
                 outputs = model.generate(pixel_values, **gen_kwargs)
 
                 generated_text = processor.batch_decode(outputs[0], skip_special_tokens=True)[0]
-                # post_process_generation was removed in newer tokenizers builds;
-                # fall back to the raw decoded string when the method is absent.
-                try:
-                    generated_text = processor.post_process_generation(
-                        generated_text, fix_markdown=False
-                    )
-                except AttributeError:
-                    pass
+                # Repetition / hallucinated-reference cleanup. Uses RapidFuzz in place of
+                # the GPL Levenshtein package; on any problem it keeps the raw decoded
+                # text (it never fails the PDF) -- see nougat_engine.postprocess_nougat_page.
+                generated_text = postprocess_nougat_page(processor, generated_text)
 
                 for i, chunk_text in enumerate(text_splitter.split_text(generated_text or "")):
                     chunks.append({
@@ -213,8 +215,12 @@ def nougat_extract_pdfs(
 
 
 # ===========================================================================
-# ENGINE 2 — Lightweight (PyMuPDF native text layer)
+# ENGINE 2 — Lightweight (native text layer, via pdf_engine / pypdfium2)
 # ===========================================================================
+
+# Embedded images are only ever used for the optional equation OCR, so they
+# are only pulled out of the PDF when pytesseract is importable.
+_OCR_AVAILABLE = importlib.util.find_spec("pytesseract") is not None
 
 def _extract_equations(text: str, images: list) -> List[str]:
     """
@@ -263,11 +269,11 @@ def lightweight_extract_pdfs(
     max_workers: int = 4,
 ) -> Tuple[str, List[str], List[str], int]:
     """
-    Extract text from each PDF in *only_process_these* using PyMuPDF's native
-    text layer (fast, no GPU required), chunk it, and append to
+    Extract text from each PDF in *only_process_these* using the PDF's native
+    text layer (pypdfium2; fast, no GPU required), chunk it, and append to
     ``01_chunks_kb.jsonl`` in *output_dir*.
 
-    Falls back to LangChain's PyPDFLoader when PyMuPDF fails on a file.
+    Falls back to LangChain's PyPDFLoader (pypdf) when pypdfium2 fails on a file.
 
     Args:
         only_process_these: Full paths of PDFs to attempt.
@@ -282,8 +288,6 @@ def lightweight_extract_pdfs(
     Returns:
         (summary_message, successful_basenames, failed_basenames, chunks_written_this_run)
     """
-    from io import BytesIO
-
     registry_path = os.path.join(output_dir, PROCESSED_REGISTRY)
     processed_set = set(load_processed_pdfs(registry_path))
     pdfs_to_run   = [p for p in only_process_these if os.path.basename(p) not in processed_set]
@@ -294,19 +298,6 @@ def lightweight_extract_pdfs(
     text_splitter = _make_splitter(chunk_size, chunk_overlap)
 
     # -----------------------------------------------------------------------
-    def _extract_images_from_page(page) -> list:
-        imgs = []
-        for img_info in page.get_images(full=True):
-            xref = img_info[0]
-            try:
-                base_image  = page.parent.extract_image(xref)
-                image_bytes = base_image.get("image", b"")
-                if image_bytes:
-                    imgs.append(Image.open(BytesIO(image_bytes)))
-            except Exception:
-                pass
-        return imgs
-
     def _process_one(pdf_path: str) -> Tuple[List[Dict], bool]:
         chunks: List[Dict] = []
         pdf_name    = os.path.basename(pdf_path)
@@ -314,33 +305,31 @@ def lightweight_extract_pdfs(
         start       = time.time()
 
         try:
-            doc = fitz.open(pdf_path)
-            for page_num in range(len(doc)):
-                page     = doc.load_page(page_num)
-                text     = page.get_text("text")
-                images   = _extract_images_from_page(page)
-                equations = _extract_equations(text, images)
+            with pdf_engine.open_pdf(pdf_path) as pdf:
+                for page_num in range(pdf.page_count):
+                    text      = pdf.page_text(page_num)
+                    images    = pdf.page_images(page_num) if _OCR_AVAILABLE else []
+                    equations = _extract_equations(text, images)
 
-                eq_text   = "\n\n".join(equations)
-                full_text = (
-                    f"{text.strip()}\n\nExtracted Equations:\n{eq_text}"
-                    if equations else text.strip()
-                )
+                    eq_text   = "\n\n".join(equations)
+                    full_text = (
+                        f"{text.strip()}\n\nExtracted Equations:\n{eq_text}"
+                        if equations else text.strip()
+                    )
 
-                for i, chunk_text in enumerate(text_splitter.split_text(full_text)):
-                    chunks.append({
-                        "source":      pdf_name,
-                        "page":        page_num + 1,
-                        "content":     chunk_text,
-                        "chunk_index": i,
-                        "document_id": document_id,
-                        "chunk_id":    f"{document_id}:p{page_num+1}:c{i}",
-                        "extractor":   "lightweight",
-                    })
-            doc.close()
+                    for i, chunk_text in enumerate(text_splitter.split_text(full_text)):
+                        chunks.append({
+                            "source":      pdf_name,
+                            "page":        page_num + 1,
+                            "content":     chunk_text,
+                            "chunk_index": i,
+                            "document_id": document_id,
+                            "chunk_id":    f"{document_id}:p{page_num+1}:c{i}",
+                            "extractor":   "lightweight",
+                        })
 
         except Exception as exc:
-            logger.warning("PyMuPDF failed on %s (%s) — trying PyPDFLoader.", pdf_name, exc)
+            logger.warning("pypdfium2 failed on %s (%s) — trying PyPDFLoader.", pdf_name, exc)
             try:
                 from langchain_community.document_loaders import PyPDFLoader
                 loader = PyPDFLoader(file_path=pdf_path)

@@ -32,8 +32,7 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Dict, List, Optional
 
-import pymupdf as fitz  # PyMuPDF -- "fitz" is the deprecated legacy import name
-
+from visual_parser import pdf_engine
 from visual_parser.jsonl_writer import append_to_jsonl, make_document_id
 from visual_parser.prompts import FIGURE_PROMPT, build_figure_prompt_with_context
 from visual_parser.vision_llm import call_vision_llm
@@ -150,15 +149,13 @@ def describe_figures_for_new_pdfs(
     for pdf_full_path in new_pdf_paths:
         pdf_name = os.path.basename(pdf_full_path)
         try:
-            doc = fitz.open(pdf_full_path)
-            for page_index, page in enumerate(doc):
-                pix = page.get_pixmap(dpi=raster_dpi)
-                page_images.append({
-                    "pdf":   pdf_name,
-                    "page":  page_index + 1,
-                    "bytes": pix.tobytes("png"),
-                })
-            doc.close()
+            with pdf_engine.open_pdf(pdf_full_path) as pdf:
+                for page_index in range(pdf.page_count):
+                    page_images.append({
+                        "pdf":   pdf_name,
+                        "page":  page_index + 1,
+                        "bytes": pdf.render_png(page_index, dpi=raster_dpi),
+                    })
         except Exception as exc:
             logger.error("Error rasterising %s: %s", pdf_name, exc)
 

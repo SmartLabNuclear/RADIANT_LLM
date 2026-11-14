@@ -6,7 +6,7 @@ image_describer.py — Send each standalone image to a Vision LLM for a
 Extracted-pattern sibling of figure_describer.py: same ThreadPoolExecutor +
 as_completed concurrency shape (worker only computes/returns; only the single-
 threaded completion loop calls append_to_jsonl), but for arbitrary user-
-supplied image files instead of PyMuPDF-rasterized PDF pages.
+supplied image files instead of rasterized PDF pages.
 
 Output
 ------
@@ -177,7 +177,7 @@ def describe_images(
     *output_dir*.
 
     Returns the basenames actually written a row for -- NOT the full input
-    list. Unlike PyMuPDF-rasterized PDF pages (always well-formed), arbitrary
+    list. Unlike rasterized PDF pages (always well-formed), arbitrary
     user-supplied image files can be corrupt, truncated, or unreadable, and a
     failed vision call must not be marked as processed by the caller, or the
     image would silently disappear from future find_new_images() output with

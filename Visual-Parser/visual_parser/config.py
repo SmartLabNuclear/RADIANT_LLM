@@ -44,7 +44,7 @@ _load_env()
 TextMode = Literal["nougat", "lightweight"]
 """
 nougat      – Facebook Nougat transformer model (best for scanned / complex PDFs)
-lightweight – PyMuPDF text layer + PyPDFLoader fallback (fast, digital PDFs)
+lightweight – PDF text layer (pypdfium2) + PyPDFLoader fallback (fast, digital PDFs)
 """
 
 # ---------------------------------------------------------------------------

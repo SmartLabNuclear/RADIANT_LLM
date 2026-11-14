@@ -25,6 +25,7 @@
 - [Local Ollama vision provider](#local-ollama-vision-provider)
 - [Citation](#citation)
 - [License](#license)
+- [Third-party licences](#third-party-licences)
 
 ## Outputs (JSONL KB)
 
@@ -97,10 +98,9 @@ Prebuilt images are on **[zev94/radiant-llm](https://hub.docker.com/r/zev94/radi
 | Tag | Description |
 |-----|-------------|
 | `visual-parser-latest` | Always latest build (rolling) |
-| `visual-parser-2.1.0` | Pinned release |
-| `visual-parser-2.0` | Pinned release |
-| `visual-parser-1.0.2` | Legacy |
-| `visual-parser-1.0` | Legacy — v1.0.0, stale |
+| `visual-parser-2.2.5` | Latest pinned release, for reproducible runs |
+
+Tags for earlier versions (`visual-parser-2.2.0` and older) are no longer maintained. They were built from releases that depended on PyMuPDF and python-Levenshtein, which 2.2.5 replaced (see [Third-party licences](#third-party-licences)).
 
 #### Install Docker
 
@@ -164,7 +164,7 @@ docker run --rm --gpus all --env-file .env `
 #### Offline install (legacy .tar)
 
 ```powershell
-docker load -i .\visual-parser_2.1.0.tar
+docker load -i .\visual-parser_<version>.tar
 docker images   # use the tag printed by Docker
 ```
 
@@ -238,7 +238,7 @@ Vision LLM:
 - `--vision-context-pages 0` — include N adjacent pages (before and after) as context in each figure-description call, to help with figures/captions that span a page break. 0 (default) is today's single-page behavior; more context pages means more tokens per call
 
 Performance / misc:
-- `--max-workers 4`
+- `--max-workers 4` (PDFs are processed on a thread pool. The PDF library itself is not thread-safe, so page rendering and text reading are serialised behind one lock; extra workers still overlap Nougat inference and the vision-model calls)
 - `--rebuild` (reprocess everything; ignore `04_processed_pdfs.txt`/`parsed_images.txt`)
 - `--redo NAME` (surgically clear one PDF/image's rows from every KB file + both registries, so it's reprocessed fresh on the next run — a targeted alternative to `--rebuild`)
 - `--skip-text` (skip text extraction and resume only the vision steps; use after an interrupted run)
@@ -297,3 +297,13 @@ Preprint: https://arxiv.org/abs/2604.22755
 Copyright 2026 Zavier N. Ndum
 
 This project is licensed under the Apache License 2.0, the same license as its parent project, [RADIANT-LLM](https://github.com/SmartLabNuclear/RADIANT_LLM). See the [LICENSE](https://github.com/SmartLabNuclear/RADIANT_LLM/blob/main/LICENSE) file in the RADIANT_LLM repository, or the `LICENSE` file bundled with this package, for the full license text.
+
+## Third-party licences
+
+**PDF and string-matching libraries.** From 2.2.5, visual-parser uses only permissively licensed libraries for these jobs: [pypdfium2](https://github.com/pypdfium2-team/pypdfium2) (Apache-2.0 or BSD-3-Clause, wrapping Google's PDFium; the licences of PDFium and its dependencies ship in the wheel), [pypdf](https://github.com/py-pdf/pypdf) (BSD-3-Clause) and [RapidFuzz](https://github.com/rapidfuzz/RapidFuzz) (MIT). Versions up to 2.2.4 used PyMuPDF (AGPL-3.0) and python-Levenshtein (GPL-2.0-or-later). The image built from the 2.2.5 `Dockerfile` starts from a clean Python base and contains neither. Images published to Docker Hub for earlier versions were built from releases that depended on them.
+
+**Reproducing earlier results.** 2.2.5 renders pages and reads the text layer with a different PDF engine, so page images, Nougat output, lightweight chunks and their `chunk_id`s can differ slightly from 2.2.4 (see [CHANGELOG.md](CHANGELOG.md)). Rows already in a knowledge base are not changed; a document parsed again gets the new output. To reproduce results made with 2.2.4 or earlier, pin `pip install visual-parser==2.2.4`. Each `03_metadata_kb.jsonl` row records its engine in `parser.pdf_engine`; rows without that field were made with PyMuPDF.
+
+**Nougat model weights.** The weights are downloaded from Hugging Face, not distributed under visual-parser's Apache-2.0 licence, and the Docker image includes the default `facebook/nougat-small`. Hugging Face lists `nougat-small` as CC-BY-4.0 and `nougat-base` (`--nougat-model facebook/nougat-base`) as CC-BY-NC-4.0, which is non-commercial only. The upstream [Nougat repository](https://github.com/facebookresearch/nougat#license) says its "model weights are licensed under CC-BY-NC". Check the terms before any commercial use of the output.
+
+**NVIDIA CUDA libraries.** The Docker image and `pip install torch --index-url …/cu130` bring in NVIDIA's CUDA runtime libraries (cuBLAS, cuDNN, NCCL and others) under NVIDIA's own licences. They are not part of visual-parser. A CPU-only torch needs none of them.

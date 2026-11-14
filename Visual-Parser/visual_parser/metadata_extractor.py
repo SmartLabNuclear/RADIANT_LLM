@@ -11,8 +11,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional
 
-import pymupdf as fitz  # PyMuPDF -- "fitz" is the deprecated legacy import name
-
+from visual_parser import pdf_engine
 from visual_parser.prompts import METADATA_PROMPT_TEMPLATE
 from visual_parser.vision_llm import call_vision_llm
 
@@ -132,18 +131,19 @@ def extract_pdf_metadata(
     """
     # 1) Rasterize front pages
     try:
-        doc = fitz.open(pdf_path)
+        pdf = pdf_engine.open_pdf(pdf_path)
     except Exception as exc:
         raise RuntimeError(f"Failed to open PDF {pdf_path!r}: {exc}") from exc
 
     images: List[bytes] = []
-    for i in range(min(num_pages, doc.page_count)):
-        try:
-            pix = doc.load_page(i).get_pixmap(dpi=200)
-            images.append(pix.tobytes("png"))
-        except Exception as exc:
-            logger.warning("Skipping page %d of %s: %s", i, pdf_path, exc)
-    doc.close()
+    try:
+        for i in range(min(num_pages, pdf.page_count)):
+            try:
+                images.append(pdf.render_png(i, dpi=200))
+            except Exception as exc:
+                logger.warning("Skipping page %d of %s: %s", i, pdf_path, exc)
+    finally:
+        pdf.close()
 
     if not images:
         raise RuntimeError(f"No pages rendered from {pdf_path!r}")

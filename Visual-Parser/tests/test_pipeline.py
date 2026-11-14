@@ -438,16 +438,14 @@ def test_second_run_with_separate_output_dir_finds_nothing_new(monkeypatch, tmp_
     Uses the real find_new_pdfs and real lightweight extraction; only the
     metadata/figure calls are stubbed, so a leftover bug would show up as a
     second, wasted metadata call exactly as it did in production."""
-    import fitz
+    from pdf_fixtures import write_pdf
 
     input_dir = tmp_path / "in"
     output_dir = tmp_path / "out"
     input_dir.mkdir()
     output_dir.mkdir()
 
-    doc = fitz.open()
-    doc.new_page().insert_text((72, 72), "Test text. " * 50)
-    doc.save(str(input_dir / "a.pdf"))
+    write_pdf(input_dir / "a.pdf", ["Test text. " * 50])
 
     metadata_calls = {"count": 0}
 
@@ -497,11 +495,9 @@ def test_same_folder_input_output_still_skips_processed_pdfs(monkeypatch, tmp_pa
     """The same-folder case (RADIANT-LLM's usage) must keep working exactly
     as before -- this is what the registry_path default (None -> resolve
     against input_dir) exists to preserve."""
-    import fitz
+    from pdf_fixtures import write_pdf
 
-    doc = fitz.open()
-    doc.new_page().insert_text((72, 72), "Test text. " * 50)
-    doc.save(str(tmp_path / "a.pdf"))
+    write_pdf(tmp_path / "a.pdf", ["Test text. " * 50])
 
     metadata_calls = {"count": 0}
 
@@ -593,6 +589,7 @@ def test_metadata_row_carries_parser_block_for_lightweight_mode(monkeypatch, tmp
     assert "nougat_model" not in parser_block
     assert parser_block["visual_parser"]
     assert parser_block["parsed_at"]
+    assert parser_block["pdf_engine"].startswith("pypdfium2 ")   # rows without this field were made with PyMuPDF
 
 
 def test_metadata_row_records_nougat_success(monkeypatch, tmp_path):

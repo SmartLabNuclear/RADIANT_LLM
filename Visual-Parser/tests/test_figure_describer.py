@@ -2,20 +2,14 @@ import json
 import threading
 import time
 
-import pymupdf as fitz
 import pytest
+from pdf_fixtures import write_pdf
 
 from visual_parser import figure_describer
 
 
 def _make_pdf(path, num_pages: int):
-    doc = fitz.open()
-    for i in range(num_pages):
-        page = doc.new_page()
-        page.insert_text((72, 72), f"Page {i + 1}")
-    doc.save(str(path))
-    doc.close()
-    return str(path)
+    return write_pdf(path, [f"Page {i + 1}" for i in range(num_pages)])
 
 
 def _fake_describe(images, prompt, provider, api_key, model, detail, reasoning_effort):

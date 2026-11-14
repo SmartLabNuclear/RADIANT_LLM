@@ -1,33 +1,31 @@
 # ============================================================
 # visual-parser Dockerfile
 # ============================================================
-# Build:  docker build -t zev94/radiant-llm:visual-parser-2.2.4 .
+# Build:  docker build -t zev94/radiant-llm:visual-parser-2.2.5 .
+#
+# Built from a clean Python base. Earlier images started FROM an old
+# working image that already held PyMuPDF/MuPDF (AGPL) and Levenshtein (GPL);
+# files in a base layer ship even if a later layer uninstalls them, so this
+# image starts from python:3.11-slim and installs only what Visual-Parser needs.
 #
 # Nougat model is downloaded during build so runs start without re-downloading.
 # (Do not pass secrets via ARG/ENV; they can leak into image history.)
 # One .env in a single place; point --input-dir to any PDF directory.
 # No need for .env inside every folder you run on.
-#
-# Default: inherit the known-good runtime from the old working image.
 # ============================================================
 
-FROM zev94/zavierndum_genai_apps:visual-parser-0.1.0
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# pyproject.toml is only needed at build time (pip install .); not kept in the final image.
-COPY pyproject.toml README.md ./
-COPY visual_parser ./visual_parser
-# Windows editors often save UTF-8 BOM; tomllib rejects it at byte 0.
-RUN python -c "p=open('pyproject.toml','rb').read(); open('pyproject.toml','wb').write(p.lstrip(b'\xef\xbb\xbf'))" \
-    && pip install --no-cache-dir . --no-deps \
-    && rm -rf pyproject.toml README.md visual_parser
+# tesseract-ocr: optional equation OCR for the lightweight text engine (pytesseract).
+# The old base image also installed libmupdf-dev (MuPDF, AGPL) -- deliberately not here.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends tesseract-ocr \
+    && rm -rf /var/lib/apt/lists/*
 
-# The base image ships CPU-only torch by default (confirmed: torch==2.10.0+cpu
-# with no --deps override above). Force the CUDA build instead so --text-mode
-# nougat can actually use a GPU when the container is run with `--gpus`; falls
-# back to CPU cleanly either way via NougatInitializer's own
-# torch.cuda.is_available() check -- no code change needed for that part.
+# Torch first, from the CUDA index, in this one layer (so the CPU wheels are never
+# installed and then overwritten, which would leave both copies in the image).
 #
 # cu130 (not cu126): PyTorch's compiled kernels are architecture-specific --
 # cu126 only ships kernels through sm_90 (Hopper), so torch.cuda.is_available()
@@ -35,7 +33,19 @@ RUN python -c "p=open('pyproject.toml','rb').read(); open('pyproject.toml','wb')
 # kernel launch fails since there's no compiled/PTX code for that arch. cu130
 # covers sm_120 and every older arch cu126 supported, so this one build works
 # across GPU generations. Requires an r580+ NVIDIA driver on the host either way.
-RUN pip install --no-cache-dir --force-reinstall torch --index-url https://download.pytorch.org/whl/cu130
+# Falls back to CPU cleanly either way via NougatInitializer's own
+# torch.cuda.is_available() check -- no code change needed for that part.
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cu130
+
+# Visual-Parser and its dependencies (pyproject.toml; [ocr] adds pytesseract).
+# pyproject.toml is only needed at build time; not kept in the final image.
+COPY pyproject.toml README.md LICENSE ./
+COPY visual_parser ./visual_parser
+# Windows editors often save UTF-8 BOM; tomllib rejects it at byte 0.
+RUN python -c "p=open('pyproject.toml','rb').read(); open('pyproject.toml','wb').write(p.lstrip(b'\xef\xbb\xbf'))" \
+    && pip install --no-cache-dir ".[ocr]" \
+    && rm -rf pyproject.toml README.md LICENSE visual_parser
 
 # Pre-download Nougat model at build time (so runs start without re-downloading)
 RUN python -c "from visual_parser.nougat_engine import NougatInitializer; NougatInitializer()"

@@ -75,13 +75,16 @@ def _build_parser_block(
     a model at run time). New field only; does not change any existing KB
     field or ID.
     """
-    from visual_parser import __version__
+    from visual_parser import __version__, pdf_engine
 
     block = {
         "visual_parser":        __version__,
         "parsed_at":            datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "text_engine":          text_engine,
         "text_fallback":        text_fallback,
+        # The library that rendered the page images and, in lightweight mode, supplied
+        # the text layer. Rows written before 2.3.0 lack this field: they used PyMuPDF.
+        "pdf_engine":           pdf_engine.engine_name(),
         "vision_provider":      config.vision_provider,
         "vision_model":         vision_model,
         "vision_detail":        config.vision_detail,
@@ -588,7 +591,7 @@ def run_pipeline(config: Optional[ParserConfig] = None) -> Dict:
                         text_engine_by_basename[_name] = ("lightweight", True)
 
         else:  # "lightweight"
-            print("[Step 1] Running lightweight (PyMuPDF) text extraction …")
+            print("[Step 1] Running lightweight (pypdfium2) text extraction …")
             from visual_parser.text_extractor import lightweight_extract_pdfs
 
             lw_summary, processed_basenames, failed_basenames, chunk_count = lightweight_extract_pdfs(

@@ -8,21 +8,24 @@ No chatbot, no LangChain, no Dash dependencies.
 
 from __future__ import annotations
 
+import importlib
 import io
 import logging
 from collections import defaultdict
 from pathlib import Path
 from typing import List, Optional
 
-import pymupdf as fitz  # PyMuPDF -- "fitz" is the deprecated legacy import name
 import torch
 from PIL import Image
+from rapidfuzz.distance import Indel
 from transformers import (
     AutoProcessor,
     StoppingCriteria,
     StoppingCriteriaList,
     VisionEncoderDecoderModel,
 )
+
+from visual_parser import pdf_engine
 
 logger = logging.getLogger(__name__)
 
@@ -133,20 +136,79 @@ def RasterizePaper(
 
     pillow_images: List[io.BytesIO] = []
     try:
-        doc = fitz.open(pdf) if isinstance(pdf, (str, Path)) else pdf
-        if pages is None:
-            pages = range(len(doc))
-        for i in pages:
-            page_bytes: bytes = doc[i].get_pixmap(dpi=dpi).pil_tobytes(format="PNG")
-            if return_pil:
-                pillow_images.append(io.BytesIO(page_bytes))
-            else:
-                with (outpath / ("%02d.png" % (i + 1))).open("wb") as f:
-                    f.write(page_bytes)
+        with pdf_engine.open_pdf(str(pdf)) as doc:
+            if pages is None:
+                pages = range(doc.page_count)
+            for i in pages:
+                page_bytes: bytes = doc.render_png(i, dpi=dpi)
+                if return_pil:
+                    pillow_images.append(io.BytesIO(page_bytes))
+                else:
+                    with (outpath / ("%02d.png" % (i + 1))).open("wb") as f:
+                        f.write(page_bytes)
     except Exception as exc:
         logger.error("Error rasterizing PDF %s: %s", pdf, exc)
 
     return pillow_images if return_pil else None
+
+
+# ---------------------------------------------------------------------------
+# Nougat output post-processing
+# ---------------------------------------------------------------------------
+#
+# transformers' Nougat tokenizer drops repeated "hallucinated" reference
+# blocks using Levenshtein.ratio, from the GPL-licensed Levenshtein package
+# (and refuses to run at all without it). Visual-Parser does not depend on
+# that package. Instead it points the tokenizer module's `ratio` at
+# RapidFuzz (MIT), whose Indel.normalized_similarity returns exactly the same
+# value as Levenshtein.ratio, and calls `post_process_single` directly, which
+# skips the Levenshtein availability check in `post_process_generation`.
+
+# Module holding the tokenizer: 5.x name first, then the 4.x name.
+_NOUGAT_TOKENIZER_MODULES = (
+    "transformers.models.nougat.tokenization_nougat",
+    "transformers.models.nougat.tokenization_nougat_fast",
+)
+
+
+def _use_rapidfuzz_ratio() -> bool:
+    """
+    Set the Nougat tokenizer module's ``ratio`` to RapidFuzz's. Returns True if
+    a tokenizer module was found and patched, False if none was (a transformers
+    layout this code does not know).
+    """
+    patched = False
+    for name in _NOUGAT_TOKENIZER_MODULES:
+        try:
+            module = importlib.import_module(name)
+        except ImportError:
+            continue
+        module.ratio = Indel.normalized_similarity
+        patched = True
+    return patched
+
+
+def postprocess_nougat_page(processor, text: str) -> str:
+    """
+    Clean one decoded Nougat page (repetition and hallucinated-reference
+    removal, table and list fixes) without the Levenshtein package.
+
+    Never raises: if post-processing is unavailable or fails, the raw decoded
+    text is returned and a warning is logged. A post-processing problem must not
+    make the whole PDF count as failed.
+    """
+    tokenizer = getattr(processor, "tokenizer", processor)
+    post_process_single = getattr(tokenizer, "post_process_single", None)
+    if post_process_single is None:
+        return text  # tokenizer build without Nougat post-processing, as before
+    if not _use_rapidfuzz_ratio():
+        logger.warning("Nougat post-processing skipped: tokenizer module layout not recognised.")
+        return text
+    try:
+        return post_process_single(text, fix_markdown=False)
+    except Exception as exc:
+        logger.warning("Nougat post-processing failed (%s); keeping the raw decoded text.", exc)
+        return text
 
 
 # ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@
 visual_parser — Standalone Visual-RAG PDF & Image Parser
 =========================================================
 Detects new PDFs (and standalone images alongside them) in a user-supplied
-directory, extracts text (via Nougat or lightweight PyMuPDF/PyPDFLoader),
+directory, extracts text (via Nougat or lightweight pypdfium2/PyPDFLoader),
 describes every figure/chart/schematic and every standalone image using a
 Vision LLM (OpenAI GPT, Google Gemini, or a local model via Ollama), and
 writes JSONL knowledge bases ready for any downstream RAG system:
@@ -19,4 +19,4 @@ from visual_parser.config import ParserConfig
 from visual_parser.pipeline import run_pipeline
 
 __all__ = ["ParserConfig", "run_pipeline"]
-__version__ = "2.2.4"
+__version__ = "2.2.5"
