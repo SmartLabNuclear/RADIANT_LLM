@@ -502,8 +502,9 @@ as a series of concentric cylindrical surfaces.
 - Answer
 
 ```text
-- Core secondary-loop explanation is correct, with one extra rationale.
-- Unsupported detail: Adds a contamination/safety rationale beyond the canonical text.
+The PWR (Pressurized Water Reactor) requires a separate secondary system for turbine-driving vapor because the reactor coolant is limited to a nominal saturated mixed mean core outlet condition. Therefore, the vapor that drives the turbine must be generated in a steam generator within a secondary system. This setup ensures that the primary coolant, which is in direct contact with the reactor core, does not come into contact with the turbine, thereby preventing contamination and maintaining safety. The steam generator acts as a link between the primary and secondary systems, allowing for the transfer of heat without mixing the fluids of the two systems.
+
+If you have more questions or need further clarification, feel free to ask!
 ```
 
 - Citations

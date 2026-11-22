@@ -415,9 +415,31 @@
 - Answer
 
 ```text
-- Only part of the secondary-loop mapping is recovered; the rest is incorrect.
-- Unsupported detail: Primary-loop state labels are reassigned to 1 and 4.
-- Unsupported detail: States that the condenser-cooling stream is not explicitly labeled.
+According to Figure 6-6 in the referenced PDF, the labeled state points and their associations are as follows:
+
+### Primary Loop (Reactor Coolant Loop)
+- **State Point 1:** From REACTOR to STEAM GENERATOR
+- **State Point 4:** From CONDENSER (after pump) back to REACTOR
+
+### Secondary Steam-Power Loop
+- **State Point 2:** From STEAM GENERATOR to TURBINE
+- **State Point 3:** From TURBINE to CONDENSER
+
+### Condenser Cooling Stream
+- The condenser cooling stream is present in the system but is not explicitly labeled as a state point (1–4) in Figure 6-6. Typically, the cooling water entering and leaving the condenser would be a separate stream, not numbered in this schematic.
+
+#### Summary Table
+
+| State Point | Location/Transition                | Loop/Stream Association         |
+|-------------|------------------------------------|---------------------------------|
+| 1           | REACTOR → STEAM GENERATOR         | Primary Loop                    |
+| 2           | STEAM GENERATOR → TURBINE         | Secondary Steam-Power Loop      |
+| 3           | TURBINE → CONDENSER               | Secondary Steam-Power Loop      |
+| 4           | CONDENSER → PUMP → REACTOR        | Primary Loop                    |
+| (Cooling)   | (Not labeled 1–4 in this figure)  | Condenser Cooling Stream        |
+
+**Reference:**  
+(Todreas_and_Kazimir_p186.pdf, Figure 6-6, p. 1)
 ```
 
 - Citations
@@ -437,8 +459,29 @@
 - Answer
 
 ```text
-- Component order is right, but the state-point sequence is wrong.
-- Unsupported detail: Secondary-loop state numbering is shifted (2/3/4/1/2 instead of 3/4/1/2).
+Based solely on Figure 6-6, the flow path of the secondary working fluid (steam/water) in a simplified PWR plant, starting from the steam generator outlet and returning to the steam generator inlet, passes through the following major components and state points in order:
+
+1. **Steam Generator Outlet (State 2):** The secondary fluid exits the steam generator as high-pressure steam.
+2. **Turbine (State 3):** The steam flows to the turbine, where it expands and generates electricity.
+3. **Condenser (State 4):** The low-pressure steam from the turbine enters the condenser and is condensed back into liquid water.
+4. **Pump (State 1):** The condensed water is pumped (by the feedwater pump) back to high pressure.
+5. **Steam Generator Inlet (State 2):** The high-pressure water returns to the steam generator, completing the cycle.
+
+**Summary Table:**
+
+| Step | Component         | State Point |
+|------|------------------|-------------|
+| 1    | Steam Generator  | 2           |
+| 2    | Turbine          | 3           |
+| 3    | Condenser        | 4           |
+| 4    | Pump             | 1           |
+| 5    | Steam Generator  | 2           |
+
+**Flow Path:**  
+Steam Generator (2) → Turbine (3) → Condenser (4) → Pump (1) → Steam Generator (2)
+
+Reference:  
+(Todreas_and_Kazimir_p186.pdf, Figure 6-6, p. 1)
 ```
 
 - Citations
@@ -458,8 +501,10 @@
 - Answer
 
 ```text
-- The turbine-generator relationship is only partially captured.
-- Unsupported detail: Treats the turbine itself as the electric-power-producing component.
+In Figure 6-6, the component directly coupled to electric-power production is the TURBINE. Visually, this relationship is depicted by the flow of steam from the steam generator to the turbine, as indicated by arrows in the schematic. The turbine is shown as a major labeled block, and it is the point where thermal energy from steam is converted into mechanical energy, which is then used for electric-power generation.
+
+Reference:
+- (Todreas_and_Kazimir_p186.pdf, Figure 6-6, p. 1)
 ```
 
 - Citations
@@ -479,10 +524,20 @@
 - Answer
 
 ```text
-- The separate-secondary-loop point is right, but most of the explanation is extra.
-- Unsupported detail: Radioactivity containment rationale is added.
-- Unsupported detail: Operational-safety/equipment-longevity rationale is added.
-- Unsupported detail: Design-optimization rationale is added.
+According to the text and Figure 6-6, a Pressurized Water Reactor (PWR) requires a separate secondary system for turbine-driving vapor, rather than sending the primary coolant directly to the turbine, for the following key reasons:
+
+1. **Radioactivity Containment:** The primary coolant circulates through the reactor core and becomes radioactive due to direct contact with the nuclear fuel. Sending this radioactive coolant directly to the turbine would risk contaminating the turbine and all associated equipment, creating significant operational and maintenance hazards.
+
+2. **Pressure and Boiling Constraints:** The primary coolant is maintained at a very high pressure to prevent it from boiling, even at the elevated temperatures needed for efficient heat transfer. This high-pressure liquid is not suitable for direct expansion in a turbine, which is designed for lower-pressure steam.
+
+3. **Operational Safety and Equipment Longevity:** By using a steam generator, heat is transferred from the radioactive primary coolant to a non-radioactive secondary loop. Only the secondary loop water is converted to steam and sent to the turbine, ensuring that the turbine and its components remain non-radioactive and easier to maintain.
+
+4. **Design Optimization:** The separation allows each loop to be optimized for its specific function—core cooling and heat transfer in the primary loop, and efficient steam generation and expansion in the secondary loop.
+
+This two-loop system, as depicted in Figure 6-6, is fundamental to the safety and practicality of PWR operation.
+
+Citations:
+- (Todreas_and_Kazimir_p186.pdf, Figure 6-6, p. 1, and associated text)
 ```
 
 - Citations
@@ -614,10 +669,16 @@
 - Answer
 
 ```text
-- The control-volume structure is substantially wrong.
-- Unsupported detail: Part A is reduced to reactor only.
-- Unsupported detail: Part B is reduced to reactor plus steam generator.
-- Unsupported detail: Part C is described as a cumulative expansion including turbine and fuel.
+In Figure 6-9, the control-volume boundaries differ across parts A, B, and C as follows:
+
+- Part A: The control volume encloses only the reactor (R). The analysis here focuses solely on the energy and mass flows into and out of the reactor itself, excluding other plant components.
+- Part B: The control volume is expanded to include both the reactor (R) and the steam generator (SG). This boundary surrounds both components, so the analysis considers the combined behavior of the reactor and steam generator as a single system.
+- Part C: The control volume further expands to include the reactor (R), steam generator (SG), and turbine (T). In this case, the boundary encompasses all three major components, and explicitly shows a 'Fuel' input to the reactor, allowing for analysis of the entire thermodynamic cycle from fuel input through to mechanical work output.
+
+As you move from A to C, the control-volume boundary expands to include more of the plant, shifting the focus from just the reactor (A), to the reactor plus steam generator (B), and finally to the reactor, steam generator, and turbine (C), with explicit consideration of fuel input in C.
+
+Reference:
+- (Todreas_Kazimi_p190.pdf, Figure 6-9, p. 1)
 ```
 
 - Citations
@@ -637,9 +698,10 @@
 - Answer
 
 ```text
-- Both the panel identity and the label are wrong.
-- Unsupported detail: Fuel is assigned to Part C instead of Part B.
-- Unsupported detail: Uses q_fission instead of Q-dot at T_fuel.
+In Figure 6-9, part C explicitly separates the Fuel from the rest of the plant. In this schematic, the Fuel is shown as a distinct input to the Reactor (R), and the energy transfer from the Fuel into the plant is labeled as "q_fission." This label represents the heat generated by nuclear fission that enters the reactor from the fuel.
+
+Reference:
+- (Todreas_Kazimi_p190.pdf, Figure 6-9, p. 1)
 ```
 
 - Citations
@@ -659,10 +721,14 @@
 - Answer
 
 ```text
-- The split and heat-transfer label are only partially captured.
-- Unsupported detail: Places Fuel in the left control volume.
-- Unsupported detail: Omits C and P from the right volume.
-- Unsupported detail: Uses Q_in instead of Q-dot at T_coolant.
+In Figure 6-9C:
+
+- The left control volume contains the major components: the Reactor (R) and the Fuel input.
+- The right control volume contains the Steam Generator (SG), Turbine (T), and Electric Generator.
+- The heat-transfer label that appears between the two control volumes is \( Q_{\text{in}} \), representing the heat transferred from the reactor to the steam generator.
+
+Reference:
+- (Todreas_Kazimi_p190.pdf, Figure 6-9C, p. 1)
 ```
 
 - Citations
@@ -682,9 +748,21 @@
 - Answer
 
 ```text
-- Electric output is recognized, but the atmospheric-flow labels are replaced by unsupported quantities.
-- Unsupported detail: Adds Q_out as a right-side plant output.
-- Unsupported detail: Adds temperature and heat-loss labels not present in the figure.
+In Figure 6-9, the plant outputs or exchanges shown on the right side of the schematic across the control-volume representations are primarily:
+
+- \( W_{\text{electric}} \): The electric work output from the Electric Generator.
+- \( Q_{\text{out}} \): The heat rejected or output from the system.
+
+Additionally, in some panels, the following may also appear:
+- \( T_{\text{sg,out}} \): Temperature at the steam generator outlet.
+- \( T_{\text{r,out}} \): Temperature at the reactor outlet.
+- \( q_{\text{cool}} \): Cooling heat loss.
+- \( q_{\text{leak}} \): Leakage heat loss.
+
+These labels represent the energy or work outputs and heat exchanges leaving the plant or control volume, as depicted by arrows exiting the right side of the schematic blocks (such as the Electric Generator or Turbine).
+
+Reference:
+- (Todreas_Kazimi_p190.pdf, Figure 6-9, p. 1)
 ```
 
 - Citations
